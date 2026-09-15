@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["p5/global"],
+    "noEmit": true
+  },
+  "include": ["**/*.js"],
+  "exclude": ["node_modules"]
+}
