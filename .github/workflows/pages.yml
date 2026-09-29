@@ -1,11 +1,11 @@
-# p5/Homework_template 폴더만 GitHub Pages 루트로 배포
+# p5/Homework_archive 폴더만 GitHub Pages 루트로 배포
 name: Deploy Homework to Pages
 
 on:
   push:
     branches: [main]
     paths:
-      - "p5/Homework_template/**"
+      - "p5/Homework_archive/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -29,6 +29,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: p5/Homework_template
+          path: p5/Homework_archive
       - id: deployment
         uses: actions/deploy-pages@v4
