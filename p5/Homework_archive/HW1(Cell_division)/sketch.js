@@ -10,8 +10,9 @@ let balls = [];
 let splitList = []; // 이번 프레임에 나눌 원들
 let cr = 200;
 let minR = 10; // 원 최소 크기 (나눠질수록 작아지다가 이 크기에서 멈춤)
-let maxBalls; // 원 최대 개수 (화면 크기에 맞춰 setup에서 계산)
-let fillRate = 0.5; // 화면을 채우는 정도 (1에 가까울수록 빽빽, 너무 크면 원들이 끼어서 멈춤)
+let maxArea; // 원들이 차지할 수 있는 최대 넓이 (화면 크기에 맞춰 setup에서 계산)
+let fillRate = 0.85; // 화면을 채우는 정도 (원끼리는 빈틈이 생겨서 0.85 정도면 꽉 차 보임)
+let speed = 4; // 원 속도 (모든 원이 이 속도로 계속 움직임)
 let waitFrame = 30; // 새로 생긴 원은 이 프레임 동안 나눠지지 않음
 let margin = 20;
 let hue; // 원 색상 (새로 고침할 때마다 랜덤)
@@ -41,12 +42,10 @@ function setup() {
       isStatic: true,
     }),
   ]);
-  // 최대 개수: 벽 안쪽 가로, 세로에 가장 작은 원(지름)이 몇 개 들어가는지 계산
-  let cols = floor((width - e * 2) / (minR * 2));
-  let rows = floor((height - e * 2) / (minR * 2));
-  maxBalls = floor(cols * rows * fillRate);
+  // 최대 넓이: 벽 안쪽 넓이 x fillRate
+  maxArea = (width - e * 2) * (height - e * 2) * fillRate;
   // body
-  let v = p5.Vector.random2D().mult(4);
+  let v = p5.Vector.random2D().mult(speed);
   addBall(width / 2, height / 2, cr, v.x, v.y);
 
   // 충돌 감지: 원이 벽에 부딪히면 splitList에 담고, 원끼리 부딪히면 채도 바꾸기
@@ -74,6 +73,10 @@ function draw() {
     splitBall(ball);
   }
   splitList = [];
+  // 꽉 차도 멈추지 않게 모든 원의 속도를 일정하게 유지
+  for (let ball of balls) {
+    Body.setSpeed(ball, speed);
+  }
   // Walls
   fill(50);
   rect(width / 2, height - margin, width, margin);
@@ -106,8 +109,8 @@ function addBall(x, y, r, vx, vy, sat = 100, bri = 100) {
 }
 
 function splitBall(ball) {
-  // 최대 개수에 도달했거나 이미 나눠진 원은 건너뛰기
-  if (balls.length >= maxBalls || !balls.includes(ball)) return;
+  // 화면이 다 찼거나 이미 나눠진 원은 건너뛰기
+  if (totalArea() >= maxArea || !balls.includes(ball)) return;
   // 방금 생긴 원은 서로 밀려서 벽에 닿은 것이므로 건너뛰기
   if (frameCount - ball.born < waitFrame) return;
   // 원래 원 지우기
@@ -122,4 +125,13 @@ function splitBall(ball) {
   let y = ball.position.y;
   addBall(x, y, r, v1.x, v1.y, ball.sat, ball.bri);
   addBall(x, y, r, v2.x, v2.y, ball.sat, ball.bri);
+}
+
+// 지금 원들이 차지하는 넓이의 합
+function totalArea() {
+  let sum = 0;
+  for (let ball of balls) {
+    sum += PI * ball.r * ball.r;
+  }
+  return sum;
 }
