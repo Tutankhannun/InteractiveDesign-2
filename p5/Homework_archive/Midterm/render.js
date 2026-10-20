@@ -11,6 +11,7 @@ const MAX_STEM = 84; // 다 자랐을 때 줄기 높이(칸)
 const LAYOUT_CELLS = 64; // 화면 칸 크기(P)를 정할 때 식물 몫으로 잡는 높이(칸). 잎·꽃이 보이는 크기를 정한다
 const PREVIEW_COUNT = 26; // 미리보기는 꽃과 열매가 다 달린 모습(메모 26개)으로 보여 준다
 const GARDEN_GAP = 38; // 정원에서 이웃과 이만큼(칸)은 떨어뜨려 심는다
+const FORK_AT = 27; // 갈래 줄기가 갈라지는 길이(칸)
 const ROOT_ROW = 80; // 조상 뿌리 이름표 줄 간격(px)
 const GARDEN_LABEL = 64; // 정원 이름표 최대 폭(칸): 이웃과 조금 겹쳐도 이름이 덜 잘리게
 const BOOK_CARD_W = 210; // 도감 카드 최소 폭(px)
@@ -46,10 +47,9 @@ function cellAt(O, x, y) {
   rect(O.x + x * O.P, O.y + y * O.P, O.P, O.P);
 }
 
-// 줄기 칸: 굵은 줄기는 오른쪽에 한 칸 더 찍는다.
+// 줄기 칸: 굵기만큼 오른쪽으로 칸을 더 찍는다.
 function stemCell(O, x, y, thick) {
-  cellAt(O, x, y);
-  if (thick > 1) cellAt(O, x + 1, y);
+  for (let i = 0; i < thick; i++) cellAt(O, x + i, y);
 }
 
 // y부터 아래로 흙바닥과 점 무늬를 그린다.
@@ -108,113 +108,178 @@ function getPlant(traits, seed) {
 }
 
 // 씨앗값(seed)으로 다 자란 식물의 구조(줄기 칸, 가지, 잎 위치)를 미리 만든다.
-// 줄기 모양은 stemType, 잎 모양·크기는 leafType·leafScale을 따른다.
+// 줄기는 '자란 길이' h(1칸씩)를 따라 이어지는 길이라서 옆으로 휘거나 갈라져도 자라는 순서가 맞다.
+// h ≤ 지금 높이 H인 칸·가지만 보인다. 줄기 모양은 stemType, 잎 모양·크기는 leafType·leafScale을 따른다.
 function buildPlant(traits, seed) {
   let rand = mulberry32(seed);
   let colors = plantColors(traits);
-  let thick = traits.stemThickness;
-  let stem = [],
-    stemX = {},
-    x = 0;
-  for (let y = -1; y >= -MAX_STEM - 1; y--) {
-    let nx = x;
-    // 계단: 가끔 한 칸씩 옆으로 꺾인다
-    if (traits.stemType === 1 && y < -10 && rand() < 0.08)
-      nx = x + (rand() < 0.5 ? -1 : 1);
-    // 지그재그: 다섯 칸마다 오른쪽 → 가운데 → 왼쪽으로 꺾인다
-    if (traits.stemType === 2 && y % 5 === 0) nx = [0, 1, 0, -1][(-y / 5) % 4];
-    // 갈래: 덜 꺾이는 대신 가지가 촘촘하다
-    if (traits.stemType === 3 && y < -8 && rand() < 0.05)
-      nx = x + (rand() < 0.5 ? -1 : 1);
-    // 물결: 부드럽게 좌우로 휘어진다
-    if (traits.stemType === 4) nx = round(sin(y / 11 + (seed % 100)) * 2);
-    // 덩굴: 자주 한 칸씩 이리저리 꺾인다
-    if (traits.stemType === 5 && y < -4 && rand() < 0.22)
-      nx = x + (rand() < 0.5 ? -1 : 1);
-    nx = constrain(nx, -2, 2);
-    if (nx !== x) {
-      stem.push({ x, y });
-      x = nx;
+  let type = traits.stemType;
+  let cactus = type === 5;
+  let thick = cactus ? 4 : traits.stemThickness;
+  let dir = rand() < 0.5 ? -1 : 1; // 기울거나 갈라지는 쪽
+  let phase = rand() * TWO_PI;
+  let stem = [], // 모든 줄기 칸 { x, y, h }
+    path = [null], // 원줄기: path[h] = { x, y }
+    curls = []; // 덩굴손 { h, y, cells }
+
+  // 원줄기: 줄마다 목표 x로 한 칸씩 다가가며(대각선) 올라간다. 계단 줄기는 옆으로 한 번에 걷는다.
+  let target = (i) => {
+    if (type === 1) return dir * round(18 * pow(i / MAX_STEM, 1.4)); // 기운: 한쪽으로 휘어 오른다
+    if (type === 3 && i > FORK_AT) return dir * min(5, floor((i - FORK_AT) / 2)); // 갈래: 갈라진 뒤 비켜 오른다
+    if (type === 2) return round((abs(((i / 9) % 4) - 2) - 1) * 5); // 지그재그: 크게 꺾인다
+    if (type === 4) return round(sin(i / 8 + phase) * 8); // 덩굴: 크게 굽이친다
+    if (type === 6) return round(sin(i / 28 + phase) * 2); // 늘어진: 살짝만 휜다
+    return null;
+  };
+  let x = 0,
+    y = -1,
+    h = 1,
+    nextStep = 6 + floor(rand() * 4);
+  let put = (cx, cy) => {
+    stem.push({ x: cx, y: cy, h });
+    path[h] = { x: cx, y: cy };
+    h++;
+  };
+  while (h <= MAX_STEM + 1) {
+    let i = -y;
+    let tx = target(i);
+    if (type === 7 && i >= nextStep) {
+      // 계단: 몇 줄마다 옆으로 2~4칸 걸어간다
+      let run = (2 + floor(rand() * 3)) * (x > 2 ? -1 : x < -2 ? 1 : rand() < 0.5 ? -1 : 1);
+      for (let r = 0; r < abs(run) && h <= MAX_STEM + 1; r++) {
+        x += Math.sign(run);
+        put(x, y);
+      }
+      nextStep = i + 6 + floor(rand() * 5);
+    } else if (tx !== null && tx !== x) x += Math.sign(tx - x);
+    else if (tx === null && i > 8 && rand() < 0.04) x += rand() < 0.5 ? -1 : 1;
+    x = constrain(x, -18, 18);
+    put(x, y);
+    y--;
+  }
+  let top = path.length - 1;
+
+  // 갈래: 3분의 1쯤에서 반대쪽으로 줄기가 하나 더 갈라져 오른다.
+  let forks = [];
+  if (type === 3) {
+    let h0 = FORK_AT,
+      f = { ...path[h0] },
+      fork = [null];
+    for (let j = 1; j <= floor((MAX_STEM - h0) * 0.75); j++) {
+      if (j < 14 && j % 2) f.x -= dir;
+      else f.y--;
+      stem.push({ x: f.x, y: f.y, h: h0 + j });
+      fork[h0 + j] = { x: f.x, y: f.y };
     }
-    stem.push({ x, y });
-    stemX[y] = x;
+    forks.push(fork);
   }
 
-  // 줄기를 따라 좌우 번갈아 가지를 낸다. 갈래 줄기는 간격이 좁다.
+  // 가지: 원줄기(와 갈래)를 따라 좌우 번갈아 낸다.
   let branches = [],
     side = rand() < 0.5 ? -1 : 1,
     id = 0;
   let tone = () => (rand() < 0.35 ? colors.leaf2 : colors.leaf);
-  // 갈래 줄기는 가지 간격이 좁고, 성긴 줄기는 넓은 대신 가지가 길다
-  let gap = traits.stemType === 3 ? 2 : traits.stemType === 6 ? 5 : 3;
-  let reach = traits.stemType === 6 ? 1.35 : 1;
+  let gap = cactus ? 4 : type === 3 ? 4 : type === 6 ? 4 : 3;
   let sprite = LEAF_SPRITES[traits.leafType];
-  for (let y = -6; y > -MAX_STEM + 2; y -= gap + floor(rand() * 2)) {
-    let t = -y / MAX_STEM;
-    // 위쪽 가지일수록 짧게
-    let len = max(3, round((6 + rand() * 6) * (1 - t * 0.5) * reach));
-    // 처음 flat칸은 옆으로, 그다음부터는 대각선 위로 뻗는다.
-    let flat = 1 + floor(rand() * 2);
+  let growBranch = (line, hh, sideNow, scale = 1) => {
+    let p = line[hh];
+    let t = hh / MAX_STEM;
     let cells = [],
-      bx = stemX[y] + (side > 0 ? thick - 1 : 0),
-      by = y;
+      bx = p.x + (sideNow > 0 ? thick - 1 : 0),
+      by = p.y;
+    let leaves = [];
+    if (cactus) {
+      // 선인장 팔: 옆으로 나갔다가 위로 꺾여 오른다 (두 칸 굵기). 짧은 팔은 가시처럼 잎만.
+      let arm = rand() < 0.5 && t > 0.12 && t < 0.7;
+      let out = arm ? 3 + floor(rand() * 3) : 1;
+      let up = arm ? 6 + floor(rand() * 8) : 0;
+      for (let i = 0; i < out; i++) {
+        bx += sideNow;
+        cells.push({ x: bx, y: by }, { x: bx, y: by - 1 });
+      }
+      for (let i = 0; i < up; i++) {
+        by--;
+        cells.push({ x: bx, y: by - 1 }, { x: bx - sideNow, y: by - 1 });
+      }
+      if (arm) by -= 1;
+      leaves.push(makeLeaf(id++, arm ? sprite : SMALL_LEAF, sideNow, bx + sideNow, by - 1, tone(), -1, true, arm ? traits.leafScale : 1));
+      return { h: hh, y: p.y, side: sideNow, cells, leaves, tip: { x: bx, y: by } };
+    }
+    let len = max(3, round((6 + rand() * 6) * (1 - t * 0.5) * scale));
+    let flat = 1 + floor(rand() * 2);
+    let droop = type === 6;
     for (let i = 0; i < len; i++) {
-      bx += side;
-      if (i >= flat) by--;
+      bx += sideNow;
+      // 늘어진 줄기는 조금 오르다 아래로 처지고, 나머지는 대각선 위로 뻗는다
+      if (droop) by += i < flat ? -1 : i >= flat + 1 ? 1 : 0;
+      else if (i >= flat) by--;
       cells.push({ x: bx, y: by });
     }
-    // 가지 끝에 큰 잎 하나
-    let leaves = [
-      makeLeaf(
-        id++,
-        sprite,
-        side,
-        bx + side,
-        by - 1,
-        tone(),
-        -1,
-        true,
-        traits.leafScale,
-      ),
-    ];
+    leaves.push(
+      droop
+        ? makeLeaf(id++, sprite, sideNow, bx + sideNow, by + 1, tone(), 1, true, traits.leafScale)
+        : makeLeaf(id++, sprite, sideNow, bx + sideNow, by - 1, tone(), -1, true, traits.leafScale),
+    );
     // 긴 가지에는 가운데 아래쪽으로 작은 잎을 하나 더 단다.
     if (len >= 7 && rand() < 0.7) {
       let m = cells[floor(len / 2)];
-      leaves.push(
-        makeLeaf(id++, SMALL_LEAF, side, m.x + side, m.y + 1, tone(), 1, false),
-      );
+      leaves.push(makeLeaf(id++, SMALL_LEAF, sideNow, m.x + sideNow, m.y + 1, tone(), 1, false));
     }
-    branches.push({ y, side, cells, leaves, tip: { x: bx, y: by } });
+    return { h: hh, y: p.y, side: sideNow, cells, leaves, tip: { x: bx, y: by } };
+  };
+  for (let hh = 6; hh < top - 2; hh += gap + floor(rand() * 2)) {
+    // 덩굴·지그재그는 줄기가 휘는 바깥쪽으로 가지를 내면 덜 겹친다
+    let bend = path[hh + 2] && path[hh - 2] ? Math.sign(path[hh + 2].x - path[hh - 2].x) : 0;
+    let s2 = (type === 4 || type === 2) && bend && rand() < 0.6 ? -bend : side;
+    branches.push(growBranch(path, hh, s2));
     side = -side;
+  }
+  for (let fork of forks) {
+    let start = fork.findIndex((p) => p);
+    for (let hh = start + 4; hh < fork.length - 2; hh += gap + 1) branches.push(growBranch(fork, hh, rand() < 0.7 ? -dir : dir, 0.8));
+  }
+
+  // 덩굴손: 덩굴 줄기 곳곳에 동그랗게 말린 줄기
+  if (type === 4) {
+    for (let hh = 10; hh < top - 4; hh += 9 + floor(rand() * 5)) {
+      let p = path[hh],
+        sd = rand() < 0.5 ? -1 : 1;
+      let base = p.x + (sd > 0 ? thick : -1);
+      let cells = [[0, 0], [1, -1], [2, -1], [3, -2], [3, -3], [2, -4], [1, -3], [2, -2]].map(([dx, dy]) => ({ x: base + sd * dx, y: p.y + dy }));
+      curls.push({ h: hh + 3, y: p.y, cells });
+    }
   }
 
   // 줄기에 바로 붙는 안쪽 잎 자리 (화분에서 이전 세대 메모용, 흙색이 섞인 바랜 색)
   // 두 칸마다 좌우 번갈아 두되, 같은 쪽 가지와 겹치면 반대쪽, 그래도 겹치면 건너뛴다.
   let inner = [],
     innerSide = -1;
-  let blocked = (s, y) =>
-    branches.some((b) => b.side === s && b.y <= y + 1 && b.y >= y - 3);
-  for (let y = -3; y > -MAX_STEM + 2; y -= 2) {
-    let s = innerSide;
+  let blocked = (sd, hh) => branches.some((b) => b.side === sd && b.h <= hh + 3 && b.h >= hh - 1);
+  for (let hh = 3; hh < top - 2; hh += 2) {
+    let p = path[hh];
+    let sd = innerSide;
     innerSide = -innerSide;
-    if (blocked(s, y)) s = -s;
-    if (blocked(s, y)) continue;
+    if (blocked(sd, hh)) sd = -sd;
+    if (blocked(sd, hh)) continue;
     let leaf = makeLeaf(
       "in" + inner.length,
       SMALL_LEAF,
-      s,
-      s > 0 ? stemX[y] + thick : stemX[y] - 1,
-      y,
+      sd,
+      sd > 0 ? p.x + thick : p.x - 1,
+      p.y,
       blendColor(colors.leaf, GROUND, 0.5),
       -1,
       false,
     );
-    inner.push({ y, leaf });
+    inner.push({ h: hh, y: p.y, leaf });
   }
   return {
     stem,
-    stemX,
+    path,
+    thick,
+    cactus,
     branches,
+    curls,
     inner,
     tops: {},
     sprouts: [],
@@ -289,7 +354,7 @@ function drawPlant(c, O, opts) {
   let count = opts.count;
   if (count === 0) return drawSeed(colors, O);
   let plant = getPlant(traits, c.seed);
-  let thick = traits.stemThickness;
+  let thick = plant.thick;
   let target = stemHeight(count);
   let H = max(2, round(growTo(opts.key, target)));
   let t = frameCount * 0.02 + plant.phase;
@@ -302,34 +367,57 @@ function drawPlant(c, O, opts) {
   let innerMemos = opts.layered ? leafMemos.filter((m) => !isOwnMemo(c, m)) : [];
   let k = flowerRadius(traits); // 꽃 반지름(칸)
 
+  let shown = plant.stem.filter((s) => s.h <= H);
+  if (plant.cactus) {
+    // 선인장 몸통: 굵은 초록 기둥, 둘째 줄은 밝게, 가장자리에 가시, 꼭대기는 둥글게
+    let spine = blendColor(colors.leaf, PAPER, 0.6);
+    for (let s of shown) {
+      let sx = s.x + sway(s.y, t);
+      fill(colors.leaf2);
+      stemCell(O, sx, s.y, thick);
+      fill(shade(colors.leaf, 0.15));
+      cellAt(O, sx + 1, s.y);
+      if (s.h % 4 === 0) {
+        fill(spine);
+        cellAt(O, (s.h / 4) % 2 ? sx - 1 : sx + thick, s.y);
+      }
+    }
+    let cap = plant.path[min(H, plant.path.length - 1)];
+    fill(colors.leaf2);
+    for (let i = 1; i < thick - 1; i++) cellAt(O, cap.x + sway(cap.y, t) + i, cap.y - 1);
+  } else {
+    fill(colors.stem);
+    for (let s of shown) stemCell(O, s.x + sway(s.y, t), s.y, thick);
+  }
+  // 덩굴손
   fill(colors.stem);
-  for (let s of plant.stem)
-    if (s.y >= -H) stemCell(O, s.x + sway(s.y, t), s.y, thick);
+  for (let curl of plant.curls)
+    if (curl.h <= H) for (let cc of curl.cells) cellAt(O, cc.x + sway(curl.y, t), cc.y);
   // 상세 화면에서는 줄기를 누르면 메모를 쓴다
   if (opts.interactive)
     zones.body.push({
       O,
-      cells: plant.stem
-        .filter((s) => s.y >= -H)
-        .map((s) => ({ x: s.x + sway(s.y, t), y: s.y, w: thick })),
+      cells: shown.map((s) => ({ x: s.x + sway(s.y, t), y: s.y, w: thick })),
     });
+  let branchColor = plant.cactus ? colors.leaf2 : colors.stem;
 
   if (count < 4) {
     // 새싹: 메모 하나에 작은 잎(여러 태그 메모는 꽃) 하나씩, 아래서부터 좌우 번갈아
     for (let i = 0; i < count; i++) {
       let side = i % 2 ? 1 : -1,
-        y = -2 - i * 2;
-      if (y < -H) break;
+        at = plant.path[2 + i * 2],
+        y = at.y;
+      if (2 + i * 2 > H) break;
       let sh = sway(y, t);
       if (flowerMemos.includes(memos[i])) {
-        let sx = plant.stemX[y] + (side > 0 ? thick - 1 : 0);
+        let sx = at.x + (side > 0 ? thick - 1 : 0);
         fill(colors.stem);
         cellAt(O, sx + side + sh, y);
         slots.push({ kind: "flower", x: sx + side * (k + 2) + sh, y: y - 1 });
         continue;
       }
       if (outerMemos.includes(memos[i])) {
-        let sx = plant.stemX[y] + (side > 0 ? thick - 1 : 0);
+        let sx = at.x + (side > 0 ? thick - 1 : 0);
         if (!plant.sproutsOut[i])
           plant.sproutsOut[i] = makeLeaf("so" + i, SMALL_LEAF, side, sx + side * 3, y - 1, colors.leaf, -1, false);
         fill(colors.stem);
@@ -339,7 +427,7 @@ function drawPlant(c, O, opts) {
         continue;
       }
       if (!plant.sprouts[i]) {
-        let sx = plant.stemX[y];
+        let sx = at.x;
         plant.sprouts[i] = makeLeaf(
           "s" + i,
           SMALL_LEAF,
@@ -355,7 +443,7 @@ function drawPlant(c, O, opts) {
     }
   } else {
     // 현재 높이 안에 있는 가지만 보여 준다.
-    let visible = plant.branches.filter((b) => b.y >= -H + 3);
+    let visible = plant.branches.filter((b) => b.h <= H - 3);
     let stage = growthStage(count);
     // 꽃은 '꽃 피움' 단계부터 최대 5송이, 열매는 '열매 맺음' 단계부터 최대 6개
     // 여러 태그 메모가 있으면 단계와 상관없이 그 수만큼 꽃을 피운다. (가지 수 + 꼭대기까지)
@@ -377,7 +465,7 @@ function drawPlant(c, O, opts) {
 
     for (let b of visible) {
       let sh = sway(b.y, t);
-      fill(colors.stem);
+      fill(branchColor);
       for (let cc of b.cells) cellAt(O, cc.x + sh, cc.y);
       let bloom = bloomBranches.includes(b);
       if (bloom) {
@@ -399,15 +487,17 @@ function drawPlant(c, O, opts) {
     }
 
     // 줄기 꼭대기: 꽃이 있으면 꽃, 없으면 V자 새순 잎 두 장
-    let topX = plant.stemX[-H],
-      topSh = sway(-H, t);
+    let topAt = plant.path[min(H, plant.path.length - 1)],
+      topX = topAt.x,
+      topY = topAt.y,
+      topSh = sway(topY, t);
     if (flowerCount > 0) {
-      slots.push({ kind: "flower", x: topX + topSh, y: -H - k, layer: "outer" });
+      slots.push({ kind: "flower", x: topX + topSh + floor(thick / 2), y: topY - k, layer: "outer" });
     } else {
       if (!plant.tops[H]) {
         plant.tops[H] = [
-          makeLeaf("top-l", SMALL_LEAF, -1, topX - 1, -H, colors.leaf, -1, false),
-          makeLeaf("top-r", SMALL_LEAF, 1, topX + thick, -H, colors.leaf, -1, false),
+          makeLeaf("top-l", SMALL_LEAF, -1, topX - 1, topY, colors.leaf, -1, false),
+          makeLeaf("top-r", SMALL_LEAF, 1, topX + thick, topY, colors.leaf, -1, false),
         ];
       }
       for (let leaf of plant.tops[H])
@@ -419,8 +509,8 @@ function drawPlant(c, O, opts) {
       let need =
         innerMemos.length -
         slots.filter((s) => s.layer === "inner").length;
-      for (let { y, leaf } of plant.inner) {
-        if (need <= 0 || y < -H + 2) break;
+      for (let { h, y, leaf } of plant.inner) {
+        if (need <= 0 || h > H - 2) break;
         slots.push({ kind: "leaf", leaf, sh: sway(y, t), layer: "inner" });
         need--;
       }
