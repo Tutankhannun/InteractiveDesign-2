@@ -212,6 +212,13 @@
         line-height: 1.6;
         resize: vertical;
       }
+      #panel textarea.code {
+        min-height: 320px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        white-space: pre;
+      }
       #panel button:focus-visible,
       #ctxMenu button:focus-visible,
       #controls button:focus-visible {
@@ -449,6 +456,7 @@
     <script src="https://cdn.jsdelivr.net/npm/p5@2.3.3/lib/p5.min.js"></script>
     <script src="sprites.js" defer></script>
     <script src="data.js" defer></script>
+    <script src="demo.js" defer></script>
     <script src="render.js" defer></script>
     <script src="sketch.js" defer></script>
   </head>
@@ -490,6 +498,8 @@
           사용법</button
         ><button class="green" type="button" data-action="new-memo" data-on="garden detail">
           + 메모</button
+        ><button class="ghost" type="button" data-action="demo" data-on="garden">
+          데모</button
         >
       </div>
     </div>

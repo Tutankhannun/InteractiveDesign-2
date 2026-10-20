@@ -663,6 +663,8 @@ function onAction(event) {
     back: goBack,
     "new-tag": () => newTag(),
     "new-memo": () => newMemo(view === "detail" ? current() : null),
+    demo: () => (panel === "demo" ? closePanel() : openPanel("demo")),
+    "copy-demo": copyDemo,
     book: openBook,
     help: () => (panel === "help" ? closePanel() : openPanel("help")),
     "close-panel": closePanel,
@@ -770,6 +772,7 @@ function renderPanel() {
       tag: renderTagPanel,
       breed: renderBreedPanel,
       help: renderHelpPanel,
+      demo: renderDemoPanel,
     };
     box.innerHTML = renderers[panel]();
     box.scrollTop = scrollTop;
@@ -825,6 +828,27 @@ function renderListPanel() {
     }`;
 }
 
+// 데모 스크립트: 콘솔에 붙여 넣을 스크립트를 보여 준다. (앱이 직접 데이터를 바꾸지 않는다)
+function renderDemoPanel() {
+  return `
+    <h2>데모 스크립트</h2>
+    <p class="meta">개발자 도구 콘솔에 붙여 넣으면 지금 정원을 지우고 식물 5 · 화분 7 · 4세대 데모 정원을 만들어요.</p>
+    <textarea class="code" readonly>${esc(DEMO_SCRIPT)}</textarea>
+    <div class="actions">
+      <button type="button" class="ghost" data-action="close-panel">닫기</button>
+      <button type="button" class="primary" data-action="copy-demo">복사</button>
+    </div>`;
+}
+
+// 데모 스크립트를 클립보드에 복사한다. 안 되면 글자를 전부 골라 둔다.
+function copyDemo() {
+  let box = el("panel").querySelector("textarea.code");
+  box.select();
+  let done = () => flash("데모 스크립트를 복사했어요");
+  if (navigator.clipboard) navigator.clipboard.writeText(DEMO_SCRIPT).then(done, () => document.execCommand("copy") && done());
+  else if (document.execCommand("copy")) done();
+}
+
 // 정원 사용법: 심기·옮기기·교배, 씨앗 포대
 function renderGardenHelp() {
   let list = (items) => `<ul class="help">${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
@@ -846,7 +870,7 @@ function renderGardenHelp() {
       "씨앗을 포대 위에 놓으면 다시 들어가며 사라져요.",
     ])}
     <div class="label">아래 버튼</div>
-    ${list(["책 아이콘: 모든 식물을 모아 보는 도감", "+ 메모: 태그를 골라 메모 쓰기"])}
+    ${list(["책 아이콘: 모든 식물을 모아 보는 도감", "+ 메모: 태그를 골라 메모 쓰기", "데모: 콘솔에 붙여 넣는 데모 정원 스크립트 보기"])}
     <div class="actions">
       <button type="button" class="ghost" data-action="close-panel">닫기</button>
     </div>`;
