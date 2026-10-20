@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>정원 테스트</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/galmuri@2.39.3/dist/galmuri.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 28px 16px;
+        background: #fbf7ee;
+        color: #2b3a55;
+        font-family: Galmuri11, Arial, sans-serif;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-family: Galmuri14, Galmuri11, sans-serif;
+        font-size: 24px;
+      }
+      #summary {
+        margin: 0 0 18px;
+        font-size: 13px;
+        color: #6b7286;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+      }
+      li {
+        padding: 10px 12px;
+        background: #fffdf6;
+        box-shadow: inset 0 0 0 2px #2b3a5533;
+        font-size: 13px;
+      }
+      li::before {
+        content: "✓ ";
+        color: #1f7a3a;
+      }
+      li.fail {
+        box-shadow: inset 0 0 0 2px #e2401c;
+      }
+      li.fail::before {
+        content: "✗ ";
+        color: #e2401c;
+      }
+      small {
+        display: block;
+        margin-top: 4px;
+        color: #e2401c;
+        white-space: pre-wrap;
+      }
+    </style>
+    <script src="sprites.js"></script>
+    <script src="data.js"></script>
+    <script src="tests.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>정원 아카이브 테스트</h1>
+      <p id="summary"></p>
+      <ul id="results"></ul>
+    </main>
+    <script>
+      dataKey = "midterm-garden-archive-test";
+      let results = runTests();
+      let failed = results.filter((r) => !r.ok).length;
+      document.getElementById("summary").textContent =
+        `${results.length}개 중 ${results.length - failed}개 통과` +
+        (failed ? ` · ${failed}개 실패` : "");
+      for (let r of results) {
+        let li = document.createElement("li");
+        li.className = r.ok ? "" : "fail";
+        li.textContent = r.name;
+        if (!r.ok) {
+          let small = document.createElement("small");
+          small.textContent = r.error;
+          li.appendChild(small);
+        }
+        document.getElementById("results").appendChild(li);
+      }
+    </script>
+  </body>
+</html>
