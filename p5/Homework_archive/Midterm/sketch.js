@@ -814,15 +814,14 @@ function renderListPanel() {
       }
     </div>
     ${filterNote}
-    <div class="label">메모 · 잎과 꽃</div>
     ${
       !memos.length
         ? `<p class="meta">아직 메모가 없어요. 메모를 쓰면 씨앗이 싹을 틔워요.</p>`
-        : memoGroup("태그가 더 많은 메모 · 꽃", memos.filter((m) => hasMoreTags(c, m)), groups) +
+        : memoGroup("꽃", memos.filter((m) => hasMoreTags(c, m)), groups) +
           (isPot
-            ? memoGroup("이 세대 메모 · 바깥쪽 잎", memos.filter((m) => !hasMoreTags(c, m) && isOwnMemo(c, m)), groups) +
-              memoGroup("이전 세대 메모 · 줄기 안쪽 잎", memos.filter((m) => !hasMoreTags(c, m) && !isOwnMemo(c, m)), groups)
-            : memoGroup("이 식물 메모 · 잎", memos.filter((m) => !hasMoreTags(c, m)), groups))
+            ? memoGroup("바깥쪽 잎", memos.filter((m) => !hasMoreTags(c, m) && isOwnMemo(c, m)), groups) +
+              memoGroup("안쪽 잎", memos.filter((m) => !hasMoreTags(c, m) && !isOwnMemo(c, m)), groups)
+            : memoGroup("잎", memos.filter((m) => !hasMoreTags(c, m)), groups))
     }`;
 }
 
@@ -980,7 +979,7 @@ function renderTagPanel() {
     ${pots ? `<p class="meta">이 태그로 이미 만든 화분 ${pots}개는 생길 때의 모양을 그대로 지켜요.</p>` : ""}
     <div class="actions">
       ${d.id ? `<button type="button" class="ghost danger" data-action="delete-tag" data-id="${d.id}">삭제</button>` : ""}
-      <button type="button" class="ghost" data-action="random-tag">모양 다시 뽑기</button>
+      ${d.id ? "" : `<button type="button" class="ghost" data-action="random-tag">모양 다시 뽑기</button>`}
       <button type="button" class="ghost" data-action="close-panel">취소</button>
       <button type="button" class="primary" data-action="save-tag">${d.id ? "저장" : "심기"}</button>
     </div>`;
@@ -1251,9 +1250,9 @@ function editTag(id) {
   openPanel("tag");
 }
 
+// 새 태그의 모양을 다시 뽑는다. (이미 심은 태그는 모양을 바꾸지 않는다)
 function rerollTag() {
-  Object.assign(tagDraft, recommendTraits());
-  if (!tagDraft.id) tagDraft.seed = newSeed();
+  Object.assign(tagDraft, recommendTraits(), { seed: newSeed() });
   shownHeight.set("tag-preview", 0);
   renderPanel();
 }

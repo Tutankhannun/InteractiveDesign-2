@@ -8,10 +8,10 @@
 
 // 형질 이름: 태그 만들기·교배 화면에 쓰인다. 배열 순서 = 형질 번호
 const TRAIT_NAMES = {
-  stemType: ["곧은", "계단", "지그재그", "갈래"],
-  leafType: ["잎맥", "세모", "네모", "하트", "물방울"],
-  flowerType: ["바람개비", "마름모", "테두리", "별"],
-  fruitType: ["베리", "사과", "포도", "꼬투리"],
+  stemType: ["곧은", "계단", "지그재그", "갈래", "물결", "덩굴", "성긴"],
+  leafType: ["잎맥", "세모", "네모", "하트", "물방울", "둥근", "바늘", "단풍"],
+  flowerType: ["바람개비", "마름모", "테두리", "별", "데이지", "튤립", "송이"],
+  fruitType: ["베리", "사과", "포도", "꼬투리", "체리", "레몬"],
 };
 
 // 형질 항목 이름
@@ -37,6 +37,14 @@ const COLOR_PRESETS = [
   ["#1f7a3a", "#1e73d8"],
   ["#7b4fc9", "#f2a477"],
   ["#1fb5c9", "#e2401c"],
+  ["#2e9e6b", "#f7b2c4"],
+  ["#5a7d2a", "#f39a1e"],
+  ["#3c4f8f", "#ffd400"],
+  ["#b5446e", "#fffdf6"],
+  ["#6aa84f", "#7b4fc9"],
+  ["#0f6b5c", "#ff7a59"],
+  ["#c98a2b", "#e2231a"],
+  ["#4b9fd6", "#ffffff"],
 ];
 
 // 화분 모양: 위에서부터 줄마다 반폭(칸)
@@ -47,8 +55,13 @@ const POT_SHAPES = [
   { rows: [7, 8, 9, 10, 11, 12, 13, 13, 13, 13] },
   { rows: [11, 11, 10, 9, 10, 11, 12, 13, 13, 12, 11, 8, 7, 9, 9] },
   { rows: [13, 13, 12, 12, 12, 12, 12, 12, 12, 12], legs: true },
+  { rows: [9, 8, 8, 10, 12, 13, 13, 13, 12, 11, 9, 8] }, // 항아리
+  { rows: [13, 13, 13, 12, 11, 9, 7] }, // 낮은 사발
+  { rows: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10] }, // 긴 통
+  { rows: [12, 13, 13, 13, 12, 11, 10], legs: true }, // 다리 달린 사발
+  { rows: [13, 12, 12, 11, 11, 10, 10, 9, 9, 8] }, // 양동이
 ];
-const POT_PATTERNS = 5; // 화분 무늬 가짓수 (render.js의 potColor 참고)
+const POT_PATTERNS = 9; // 화분 무늬 가짓수 (render.js의 potColor 참고)
 
 // 화분 색 조합: pot 바탕, accent 무늬, accent2 포인트 무늬, dark 테두리·그림자
 const POT_THEMES = [
@@ -58,6 +71,11 @@ const POT_THEMES = [
   { pot: "#2f6fd6", accent: "#f39a1e", accent2: "#fffdf6", dark: "#1f4b99" },
   { pot: "#7c8a3a", accent: "#2b3a55", accent2: "#d9d36a", dark: "#58622a" },
   { pot: "#2b3a55", accent: "#5c6f91", accent2: "#f39a1e", dark: "#1b263a" },
+  { pot: "#7fcfb8", accent: "#2b7a66", accent2: "#fffdf6", dark: "#4f9c86" },
+  { pot: "#f4a6b8", accent: "#d6246e", accent2: "#fffdf6", dark: "#c46f86" },
+  { pot: "#efe0c0", accent: "#c4561a", accent2: "#2b3a55", dark: "#bfa77a" },
+  { pot: "#7b4fc9", accent: "#ffd23f", accent2: "#f4a6b8", dark: "#563596" },
+  { pot: "#262626", accent: "#d9a520", accent2: "#fffdf6", dark: "#111111" },
 ];
 
 // 잎 스프라이트: 왼쪽 아래가 가지에 붙는 자리. X 잎, o 그림자, v 잎맥
@@ -67,15 +85,21 @@ const LEAF_SPRITES = [
   ["XXXXv", "XXXvX", "XXvXX", "XvXXX", "vXXXX"],
   ["XX.XX", "XXXXX", "XXXXo", "XXXo.", "XXo.."],
   ["...XX", "..XXX", ".XXXo", "XXXo.", "XXo.."],
+  [".XXX.", "XXXXX", "XXXvo", "XXvo.", "Xv..."], // 둥근
+  ["......X", ".....X.", "....X..", "...X...", "..X....", ".X.....", "X......"], // 바늘
+  ["X..X.", "XX.XX", ".XXXX", "XXvXo", "..vo.", ".v...", "v...."], // 단풍
 ];
 // 가지 중간·꼭대기·새싹에 쓰는 작은 잎
 const SMALL_LEAF = ["..X", ".XX", "XXo"];
-// 꽃 스프라이트 4종: 바람개비, 마름모, 테두리, 별
+// 꽃 스프라이트 7종: 바람개비, 마름모, 테두리, 별, 데이지, 튤립, 송이
 const FLOWER_SPRITES = [
   pinwheelFlower(),
   diamondFlower(),
   hollowFlower(),
   starFlower(),
+  daisyFlower(),
+  tulipFlower(),
+  clusterFlower(),
 ];
 // 열매 스프라이트 4종: 첫 줄의 s(꼭지)가 가지에 매달리는 자리. f 열매, d 그늘, h 빛
 const FRUIT_SPRITES = [
@@ -83,6 +107,8 @@ const FRUIT_SPRITES = [
   ["..s..", ".fff.", "fhfff", "ffffd", ".fdd."],
   ["..s..", "fhfdf", "dfdfd", ".fdf.", "..d.."],
   ["s..", "ff.", "hfd", "ffd", ".dd"],
+  ["..s..", ".s.s.", "ff.ff", "hf.hf", "dd.dd"], // 체리
+  ["s...", "ff..", "hff.", ".ffd", "..dd"], // 레몬
 ];
 
 // 꽃 스프라이트: p 꽃잎, d 짙은 꽃잎, c 꽃술, w 흰 속
@@ -162,3 +188,39 @@ const SACK = [
   "..oobbbbbboo..",
   "....oooooo....",
 ];
+
+// 데이지: 노란 꽃술 둘레로 흰 꽃잎이 열 방향으로, 끝만 꽃 색
+function daisyFlower() {
+  return gridFlower((x, y, d) => {
+    if (d <= 1) return "c";
+    if ((x === 0 || y === 0) && d <= 3) return d === 3 ? "p" : "w";
+    if (Math.abs(x) === Math.abs(y) && Math.abs(x) <= 2) return "w";
+    return null;
+  });
+}
+
+// 튤립: 위가 갈라진 컵 모양
+function tulipFlower() {
+  return gridFlower((x, y) => {
+    let ax = Math.abs(x);
+    if (y === -3) return ax === 2 || x === 0 ? "p" : null;
+    if (y === -2) return ax <= 2 ? "p" : null;
+    if (y === -1) return ax <= 2 ? (ax === 2 ? "d" : "p") : null;
+    if (y === 0) return ax <= 1 ? "d" : null;
+    if (y === 1) return x === 0 ? "c" : null;
+    return null;
+  });
+}
+
+// 송이: 작은 꽃 세 송이가 모여 있다
+function clusterFlower() {
+  let centers = [[-2, -1], [2, -1], [0, 2]];
+  return gridFlower((x, y) => {
+    for (let [cx, cy] of centers) {
+      let d = Math.abs(x - cx) + Math.abs(y - cy);
+      if (d === 0) return "c";
+      if (d === 1) return "p";
+    }
+    return null;
+  });
+}

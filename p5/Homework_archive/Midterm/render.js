@@ -126,6 +126,11 @@ function buildPlant(traits, seed) {
     // 갈래: 덜 꺾이는 대신 가지가 촘촘하다
     if (traits.stemType === 3 && y < -8 && rand() < 0.05)
       nx = x + (rand() < 0.5 ? -1 : 1);
+    // 물결: 부드럽게 좌우로 휘어진다
+    if (traits.stemType === 4) nx = round(sin(y / 11 + (seed % 100)) * 2);
+    // 덩굴: 자주 한 칸씩 이리저리 꺾인다
+    if (traits.stemType === 5 && y < -4 && rand() < 0.22)
+      nx = x + (rand() < 0.5 ? -1 : 1);
     nx = constrain(nx, -2, 2);
     if (nx !== x) {
       stem.push({ x, y });
@@ -140,12 +145,14 @@ function buildPlant(traits, seed) {
     side = rand() < 0.5 ? -1 : 1,
     id = 0;
   let tone = () => (rand() < 0.35 ? colors.leaf2 : colors.leaf);
-  let gap = traits.stemType === 3 ? 2 : 3;
+  // 갈래 줄기는 가지 간격이 좁고, 성긴 줄기는 넓은 대신 가지가 길다
+  let gap = traits.stemType === 3 ? 2 : traits.stemType === 6 ? 5 : 3;
+  let reach = traits.stemType === 6 ? 1.35 : 1;
   let sprite = LEAF_SPRITES[traits.leafType];
   for (let y = -6; y > -MAX_STEM + 2; y -= gap + floor(rand() * 2)) {
     let t = -y / MAX_STEM;
     // 위쪽 가지일수록 짧게
-    let len = max(3, round((6 + rand() * 6) * (1 - t * 0.5)));
+    let len = max(3, round((6 + rand() * 6) * (1 - t * 0.5) * reach));
     // 처음 flat칸은 옆으로, 그다음부터는 대각선 위로 뻗는다.
     let flat = 1 + floor(rand() * 2);
     let cells = [],
@@ -625,6 +632,17 @@ function potColor(pattern, x, r, hw, H, th) {
     // 지그재그
     if (r === 2) col = th.accent2;
     if (r === mid - 1 + abs(m6 - 3)) col = th.accent;
+  }
+  let inside = r > 1 && r < H - 1;
+  if (pattern === 5 && inside && r % 3 === 1 && (((x + (r % 6 === 4 ? 3 : 0)) % 6) + 6) % 6 === 0)
+    col = th.accent2; // 물방울 점
+  if (pattern === 6 && inside && (floor((x + 30) / 3) + floor(r / 3)) % 2 === 0)
+    col = th.accent; // 체크
+  if (pattern === 7 && inside && ((x % 4) + 4) % 4 === 0) col = th.accent; // 세로 줄무늬
+  if (pattern === 8) {
+    // 가운데 띠 + 점
+    if (abs(r - mid) <= 1) col = th.accent;
+    if (r === mid && m6 === 0) col = th.accent2;
   }
   if (x === hw || r === H - 1) col = shade(col, -0.15);
   else if (x === -hw) col = shade(col, 0.12);
