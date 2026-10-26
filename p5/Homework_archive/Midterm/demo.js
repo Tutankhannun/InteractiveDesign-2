@@ -1,8 +1,8 @@
 // =============================================================
 // 정원 아카이브 (Midterm) — 데모 스크립트
 // =============================================================
-// - 정원 아래 '데모' 버튼을 누르면 이 스크립트를 패널에 띄운다. (앱이 직접 실행하지 않는다)
-// - 개발자 도구 콘솔에 붙여 넣으면 지금 정원을 지우고 식물 5 · 화분 7 · 4세대 데모 정원을 만든다.
+// - 첫 진입 시 이 스크립트로 식물 5 · 화분 7 · 4세대 데모 정원을 만든다.
+// - 같은 브라우저 탭에서는 한 번만 실행되어 새로고침해도 데모 정원이 유지된다.
 // =============================================================
 
 const DEMO_SCRIPT = String.raw`// 정원 아카이브 테스트 데이터: 식물 5 · 화분 7 · 4세대
@@ -102,3 +102,13 @@ function seedGarden() {
     console.error("Midterm 화면이 열려 있지 않아요. 메뉴에서 Midterm을 먼저 열어 주세요.");
   else app.eval("(" + seedGarden + ")()");
 }`;
+
+const DEMO_SESSION_KEY = "midterm-garden-demo-seeded";
+
+// 기존 콘솔용 시드 스크립트를 그대로 실행한다. 스크립트 안에서 저장 후 한 번 새로고침한다.
+function seedDemoGardenOnce() {
+  if (sessionStorage.getItem(DEMO_SESSION_KEY)) return false;
+  sessionStorage.setItem(DEMO_SESSION_KEY, "true");
+  eval(DEMO_SCRIPT);
+  return true;
+}
