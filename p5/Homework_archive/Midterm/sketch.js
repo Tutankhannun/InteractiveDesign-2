@@ -696,7 +696,6 @@ function onAction(event) {
     archive: () => setArchived(true),
     restore: () => setArchived(false),
     // 백업
-    export: downloadBackup,
   };
   if (actions[action]) actions[action]();
 }
@@ -1441,18 +1440,6 @@ function setArchived(archived) {
     afterChange();
     flash("화분을 정원으로 다시 꺼냈어요");
   }
-}
-
-// ---------- 백업 ----------
-
-function downloadBackup() {
-  let link = document.createElement("a");
-  link.href = URL.createObjectURL(
-    new Blob([exportData()], { type: "application/json" }),
-  );
-  link.download = `garden-archive-${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 // ---------- 화면 글자·버튼 ----------
