@@ -39,7 +39,15 @@ const spawnAt = new Map(); // 새 화분이 생긴 시각 (떨어지는 애니�
 const placeHints = new Map(); // 새 화분을 심을 때 가까이 두고 싶은 자리 (부모 사이)
 
 function emptyZones() {
-  return { leaves: [], flowers: [], roots: [], items: [], cards: [], ui: [], body: [] };
+  return {
+    leaves: [],
+    flowers: [],
+    roots: [],
+    items: [],
+    cards: [],
+    ui: [],
+    body: [],
+  };
 }
 
 // 기준점 O에서 (x, y)번째 칸에 네모 하나를 찍는다. 모든 픽셀 그림의 기본 단위.
@@ -125,7 +133,8 @@ function buildPlant(traits, seed) {
   // 원줄기: 줄마다 목표 x로 한 칸씩 다가가며(대각선) 올라간다. 계단 줄기는 옆으로 한 번에 걷는다.
   let target = (i) => {
     if (type === 1) return dir * round(18 * pow(i / MAX_STEM, 1.4)); // 기운: 한쪽으로 휘어 오른다
-    if (type === 3 && i > FORK_AT) return dir * min(5, floor((i - FORK_AT) / 2)); // 갈래: 갈라진 뒤 비켜 오른다
+    if (type === 3 && i > FORK_AT)
+      return dir * min(5, floor((i - FORK_AT) / 2)); // 갈래: 갈라진 뒤 비켜 오른다
     if (type === 2) return round((abs(((i / 9) % 4) - 2) - 1) * 5); // 지그재그: 크게 꺾인다
     if (type === 4) return round(sin(i / 8 + phase) * 8); // 덩굴: 크게 굽이친다
     if (type === 6) return round(sin(i / 28 + phase) * 2); // 늘어진: 살짝만 휜다
@@ -145,7 +154,9 @@ function buildPlant(traits, seed) {
     let tx = target(i);
     if (type === 7 && i >= nextStep) {
       // 계단: 몇 줄마다 옆으로 2~4칸 걸어간다
-      let run = (2 + floor(rand() * 3)) * (x > 2 ? -1 : x < -2 ? 1 : rand() < 0.5 ? -1 : 1);
+      let run =
+        (2 + floor(rand() * 3)) *
+        (x > 2 ? -1 : x < -2 ? 1 : rand() < 0.5 ? -1 : 1);
       for (let r = 0; r < abs(run) && h <= MAX_STEM + 1; r++) {
         x += Math.sign(run);
         put(x, y);
@@ -202,8 +213,27 @@ function buildPlant(traits, seed) {
         cells.push({ x: bx, y: by - 1 }, { x: bx - sideNow, y: by - 1 });
       }
       if (arm) by -= 1;
-      leaves.push(makeLeaf(id++, arm ? sprite : SMALL_LEAF, sideNow, bx + sideNow, by - 1, tone(), -1, true, arm ? traits.leafScale : 1));
-      return { h: hh, y: p.y, side: sideNow, cells, leaves, tip: { x: bx, y: by } };
+      leaves.push(
+        makeLeaf(
+          id++,
+          arm ? sprite : SMALL_LEAF,
+          sideNow,
+          bx + sideNow,
+          by - 1,
+          tone(),
+          -1,
+          true,
+          arm ? traits.leafScale : 1,
+        ),
+      );
+      return {
+        h: hh,
+        y: p.y,
+        side: sideNow,
+        cells,
+        leaves,
+        tip: { x: bx, y: by },
+      };
     }
     let len = max(3, round((6 + rand() * 6) * (1 - t * 0.5) * scale));
     let flat = 1 + floor(rand() * 2);
@@ -217,26 +247,68 @@ function buildPlant(traits, seed) {
     }
     leaves.push(
       droop
-        ? makeLeaf(id++, sprite, sideNow, bx + sideNow, by + 1, tone(), 1, true, traits.leafScale)
-        : makeLeaf(id++, sprite, sideNow, bx + sideNow, by - 1, tone(), -1, true, traits.leafScale),
+        ? makeLeaf(
+            id++,
+            sprite,
+            sideNow,
+            bx + sideNow,
+            by + 1,
+            tone(),
+            1,
+            true,
+            traits.leafScale,
+          )
+        : makeLeaf(
+            id++,
+            sprite,
+            sideNow,
+            bx + sideNow,
+            by - 1,
+            tone(),
+            -1,
+            true,
+            traits.leafScale,
+          ),
     );
     // 긴 가지에는 가운데 아래쪽으로 작은 잎을 하나 더 단다.
     if (len >= 7 && rand() < 0.7) {
       let m = cells[floor(len / 2)];
-      leaves.push(makeLeaf(id++, SMALL_LEAF, sideNow, m.x + sideNow, m.y + 1, tone(), 1, false));
+      leaves.push(
+        makeLeaf(
+          id++,
+          SMALL_LEAF,
+          sideNow,
+          m.x + sideNow,
+          m.y + 1,
+          tone(),
+          1,
+          false,
+        ),
+      );
     }
-    return { h: hh, y: p.y, side: sideNow, cells, leaves, tip: { x: bx, y: by } };
+    return {
+      h: hh,
+      y: p.y,
+      side: sideNow,
+      cells,
+      leaves,
+      tip: { x: bx, y: by },
+    };
   };
   for (let hh = 6; hh < top - 2; hh += gap + floor(rand() * 2)) {
     // 덩굴·지그재그는 줄기가 휘는 바깥쪽으로 가지를 내면 덜 겹친다
-    let bend = path[hh + 2] && path[hh - 2] ? Math.sign(path[hh + 2].x - path[hh - 2].x) : 0;
+    let bend =
+      path[hh + 2] && path[hh - 2]
+        ? Math.sign(path[hh + 2].x - path[hh - 2].x)
+        : 0;
     let s2 = (type === 4 || type === 2) && bend && rand() < 0.6 ? -bend : side;
     branches.push(growBranch(path, hh, s2));
     side = -side;
   }
   for (let fork of forks) {
     let start = fork.findIndex((p) => p);
-    for (let hh = start + 4; hh < fork.length - 2; hh += gap + 1) branches.push(growBranch(fork, hh, rand() < 0.7 ? -dir : dir, 0.8));
+    for (let hh = start + 4; hh < fork.length - 2; hh += gap + 1)
+      branches.push(growBranch(fork, hh, rand() < 0.7 ? -dir : dir, 0.8));
   }
 
   // 덩굴손: 덩굴 줄기 곳곳에 동그랗게 말린 줄기
@@ -245,7 +317,16 @@ function buildPlant(traits, seed) {
       let p = path[hh],
         sd = rand() < 0.5 ? -1 : 1;
       let base = p.x + (sd > 0 ? thick : -1);
-      let cells = [[0, 0], [1, -1], [2, -1], [3, -2], [3, -3], [2, -4], [1, -3], [2, -2]].map(([dx, dy]) => ({ x: base + sd * dx, y: p.y + dy }));
+      let cells = [
+        [0, 0],
+        [1, -1],
+        [2, -1],
+        [3, -2],
+        [3, -3],
+        [2, -4],
+        [1, -3],
+        [2, -2],
+      ].map(([dx, dy]) => ({ x: base + sd * dx, y: p.y + dy }));
       curls.push({ h: hh + 3, y: p.y, cells });
     }
   }
@@ -254,7 +335,8 @@ function buildPlant(traits, seed) {
   // 두 칸마다 좌우 번갈아 두되, 같은 쪽 가지와 겹치면 반대쪽, 그래도 겹치면 건너뛴다.
   let inner = [],
     innerSide = -1;
-  let blocked = (sd, hh) => branches.some((b) => b.side === sd && b.h <= hh + 3 && b.h >= hh - 1);
+  let blocked = (sd, hh) =>
+    branches.some((b) => b.side === sd && b.h <= hh + 3 && b.h >= hh - 1);
   for (let hh = 3; hh < top - 2; hh += 2) {
     let p = path[hh];
     let sd = innerSide;
@@ -361,10 +443,14 @@ function drawPlant(c, O, opts) {
   let slots = [], // 메모를 달 수 있는 자리: 잎 또는 꽃
     fruits = [];
   let memos = opts.memos || [];
-  let flowerMemos = opts.memoFlowers ? memos.filter((m) => hasMoreTags(c, m)) : [];
+  let flowerMemos = opts.memoFlowers
+    ? memos.filter((m) => hasMoreTags(c, m))
+    : [];
   let leafMemos = memos.filter((m) => !flowerMemos.includes(m));
   let outerMemos = opts.layered ? leafMemos.filter((m) => isOwnMemo(c, m)) : [];
-  let innerMemos = opts.layered ? leafMemos.filter((m) => !isOwnMemo(c, m)) : [];
+  let innerMemos = opts.layered
+    ? leafMemos.filter((m) => !isOwnMemo(c, m))
+    : [];
   let k = flowerRadius(traits); // 꽃 반지름(칸)
 
   let shown = plant.stem.filter((s) => s.h <= H);
@@ -384,7 +470,8 @@ function drawPlant(c, O, opts) {
     }
     let cap = plant.path[min(H, plant.path.length - 1)];
     fill(colors.leaf2);
-    for (let i = 1; i < thick - 1; i++) cellAt(O, cap.x + sway(cap.y, t) + i, cap.y - 1);
+    for (let i = 1; i < thick - 1; i++)
+      cellAt(O, cap.x + sway(cap.y, t) + i, cap.y - 1);
   } else {
     fill(colors.stem);
     for (let s of shown) stemCell(O, s.x + sway(s.y, t), s.y, thick);
@@ -392,7 +479,8 @@ function drawPlant(c, O, opts) {
   // 덩굴손
   fill(colors.stem);
   for (let curl of plant.curls)
-    if (curl.h <= H) for (let cc of curl.cells) cellAt(O, cc.x + sway(curl.y, t), cc.y);
+    if (curl.h <= H)
+      for (let cc of curl.cells) cellAt(O, cc.x + sway(curl.y, t), cc.y);
   // 상세 화면에서는 줄기를 누르면 메모를 쓴다
   if (opts.interactive)
     zones.body.push({
@@ -419,11 +507,25 @@ function drawPlant(c, O, opts) {
       if (outerMemos.includes(memos[i])) {
         let sx = at.x + (side > 0 ? thick - 1 : 0);
         if (!plant.sproutsOut[i])
-          plant.sproutsOut[i] = makeLeaf("so" + i, SMALL_LEAF, side, sx + side * 3, y - 1, colors.leaf, -1, false);
+          plant.sproutsOut[i] = makeLeaf(
+            "so" + i,
+            SMALL_LEAF,
+            side,
+            sx + side * 3,
+            y - 1,
+            colors.leaf,
+            -1,
+            false,
+          );
         fill(colors.stem);
         cellAt(O, sx + side + sh, y);
         cellAt(O, sx + side * 2 + sh, y - 1);
-        slots.push({ kind: "leaf", leaf: plant.sproutsOut[i], sh, layer: "outer" });
+        slots.push({
+          kind: "leaf",
+          leaf: plant.sproutsOut[i],
+          sh,
+          layer: "outer",
+        });
         continue;
       }
       if (!plant.sprouts[i]) {
@@ -479,7 +581,12 @@ function drawPlant(c, O, opts) {
       }
       for (let leaf of b.leaves)
         if (!(bloom && leaf.tip))
-          slots.push({ kind: "leaf", leaf, sh, layer: leaf.tip ? "outer" : "inner" });
+          slots.push({
+            kind: "leaf",
+            leaf,
+            sh,
+            layer: leaf.tip ? "outer" : "inner",
+          });
       if (fruitBranches.includes(b)) {
         let m = b.cells[floor(b.cells.length / 2)];
         fruits.push({ x: m.x + sh, y: m.y + 1 });
@@ -492,12 +599,35 @@ function drawPlant(c, O, opts) {
       topY = topAt.y,
       topSh = sway(topY, t);
     if (flowerCount > 0) {
-      slots.push({ kind: "flower", x: topX + topSh + floor(thick / 2), y: topY - k, layer: "outer" });
+      slots.push({
+        kind: "flower",
+        x: topX + topSh + floor(thick / 2),
+        y: topY - k,
+        layer: "outer",
+      });
     } else {
       if (!plant.tops[H]) {
         plant.tops[H] = [
-          makeLeaf("top-l", SMALL_LEAF, -1, topX - 1, topY, colors.leaf, -1, false),
-          makeLeaf("top-r", SMALL_LEAF, 1, topX + thick, topY, colors.leaf, -1, false),
+          makeLeaf(
+            "top-l",
+            SMALL_LEAF,
+            -1,
+            topX - 1,
+            topY,
+            colors.leaf,
+            -1,
+            false,
+          ),
+          makeLeaf(
+            "top-r",
+            SMALL_LEAF,
+            1,
+            topX + thick,
+            topY,
+            colors.leaf,
+            -1,
+            false,
+          ),
         ];
       }
       for (let leaf of plant.tops[H])
@@ -507,8 +637,7 @@ function drawPlant(c, O, opts) {
     // 화분: 가지 중간 잎으로 모자란 만큼 줄기에 붙은 안쪽 잎을 아래서부터 더 단다.
     if (opts.layered) {
       let need =
-        innerMemos.length -
-        slots.filter((s) => s.layer === "inner").length;
+        innerMemos.length - slots.filter((s) => s.layer === "inner").length;
       for (let { h, y, leaf } of plant.inner) {
         if (need <= 0 || h > H - 2) break;
         slots.push({ kind: "leaf", leaf, sh: sway(y, t), layer: "inner" });
@@ -520,19 +649,30 @@ function drawPlant(c, O, opts) {
   // 아래 자리부터 오래된 메모를 하나씩 단다.
   let bottomUp = (a, b) => slotY(b) - slotY(a);
   let leafSlots = slots.filter((s) => s.kind === "leaf").sort(bottomUp);
-  let assignMemos = (list, memoList) => list.forEach((s, i) => (s.memo = memoList[i] || null));
+  let assignMemos = (list, memoList) =>
+    list.forEach((s, i) => (s.memo = memoList[i] || null));
   if (opts.memoFlowers)
     // 꽃 자리에는 자기보다 태그가 많은 메모
-    assignMemos(slots.filter((s) => s.kind === "flower").sort(bottomUp), flowerMemos);
+    assignMemos(
+      slots.filter((s) => s.kind === "flower").sort(bottomUp),
+      flowerMemos,
+    );
   if (opts.layered) {
     // 화분: 바깥 잎에는 현재 세대 메모, 안쪽 잎에는 이전 세대 메모
-    assignMemos(leafSlots.filter((s) => s.layer === "outer"), outerMemos);
-    assignMemos(leafSlots.filter((s) => s.layer === "inner"), innerMemos);
+    assignMemos(
+      leafSlots.filter((s) => s.layer === "outer"),
+      outerMemos,
+    );
+    assignMemos(
+      leafSlots.filter((s) => s.layer === "inner"),
+      innerMemos,
+    );
   } else assignMemos(opts.memoFlowers ? leafSlots : slots, leafMemos);
 
   // 잎과 꽃은 줄기·가지 위에 덮이도록 나중에 그린다. 안쪽 잎을 먼저, 바깥 잎을 위에.
   for (let s of slots)
-    if (s.kind === "leaf" && s.layer === "inner") drawLeaf(s.leaf, O, s.sh, s, opts);
+    if (s.kind === "leaf" && s.layer === "inner")
+      drawLeaf(s.leaf, O, s.sh, s, opts);
   // 화분에서는 메모가 없는 바깥 잎은 그리지 않는다. (밝은 바깥 잎 = 현재 세대 메모)
   for (let s of slots)
     if (s.kind === "leaf" && s.layer !== "inner" && (s.memo || !opts.layered))
@@ -540,7 +680,16 @@ function drawPlant(c, O, opts) {
   for (let f of fruits) drawFruit(traits.fruitType, f.x, f.y, colors, O);
   for (let s of slots)
     if (s.kind === "flower")
-      drawFlower(traits.flowerType, s.x, s.y, colors, O, traits.flowerScale, s, opts);
+      drawFlower(
+        traits.flowerType,
+        s.x,
+        s.y,
+        colors,
+        O,
+        traits.flowerScale,
+        s,
+        opts,
+      );
 }
 
 // 자리의 높이(칸): 잎은 아래 끝, 꽃은 가운데
@@ -620,7 +769,11 @@ function drawFlower(type, cx, cy, colors, O, scale, slot, opts) {
     cellAt(O, cx + f.x, cy + f.y);
     if (scale === 2 && (abs(f.x) === 3 || abs(f.y) === 3)) {
       fill(look(pal.d));
-      cellAt(O, cx + f.x + (abs(f.x) === 3 ? Math.sign(f.x) : 0), cy + f.y + (abs(f.y) === 3 ? Math.sign(f.y) : 0));
+      cellAt(
+        O,
+        cx + f.x + (abs(f.x) === 3 ? Math.sign(f.x) : 0),
+        cy + f.y + (abs(f.y) === 3 ? Math.sign(f.y) : 0),
+      );
     }
   }
   if (opts.interactive && slot.memo) {
@@ -724,7 +877,12 @@ function potColor(pattern, x, r, hw, H, th) {
     if (r === mid - 1 + abs(m6 - 3)) col = th.accent;
   }
   let inside = r > 1 && r < H - 1;
-  if (pattern === 5 && inside && r % 3 === 1 && (((x + (r % 6 === 4 ? 3 : 0)) % 6) + 6) % 6 === 0)
+  if (
+    pattern === 5 &&
+    inside &&
+    r % 3 === 1 &&
+    (((x + (r % 6 === 4 ? 3 : 0)) % 6) + 6) % 6 === 0
+  )
     col = th.accent2; // 물방울 점
   if (pattern === 6 && inside && (floor((x + 30) / 3) + floor(r / 3)) % 2 === 0)
     col = th.accent; // 체크
@@ -835,19 +993,10 @@ function gardenLayout(area) {
   let w = area.x1 - area.x0,
     h = area.y1 - area.y0;
   let P = constrain(floor(min((h - 160) / 80, w / 100)), 2, 3);
-  let bottom = area.y1 - 44; // 화단 맨 앞: 이름표 자리를 남긴다
+  // 보이는 흙바닥의 윗선은 항상 화면 아래쪽 같은 위치에 둔다.
+  let top = round(lerp(area.y0, area.y1, 0.26));
+  let bottom = area.y1 - 44; // 화단 앞쪽: 이름표 자리를 남긴다
   let items = gardenItems();
-  // 화단 맨 뒤: 가장 키 큰 식물도 머리가 잘리지 않을 만큼만 하늘을 남긴다
-  let top = area.y0 + 24 * P;
-  for (let c of items) {
-    let d = c.gardenPos ? c.gardenPos.d : 0;
-    if (d < 0.95)
-      top = max(top, (area.y0 + 8 + itemHeight(c) * P - d * bottom) / (1 - d));
-  }
-  // 씨앗 포대도 머리가 잘리지 않게
-  if (sack.pos && sack.pos.d < 0.95)
-    top = max(top, (area.y0 + 8 + (SACK.length + 1) * 2 * P - sack.pos.d * bottom) / (1 - sack.pos.d));
-  top = min(top, area.y0 + (MAX_STEM + 24) * P, bottom - 20);
   let right = max(
     0,
     ...items.map((c) => (c.gardenPos ? c.gardenPos.x : 0)),
@@ -865,7 +1014,9 @@ function itemHeight(c) {
 // 메모 count개만큼 자란 식물·화분이 땅 위로 차지하는 높이(칸): 화분(또는 흙더미) + 줄기 + 맨 위 꽃
 function plantCells(c, count) {
   let rows = c.type === "pot" ? potHeight(c.potStyle) : 2;
-  return rows + (count ? stemHeight(count) + flowerRadius(c.geneticTraits) + 3 : 4);
+  return (
+    rows + (count ? stemHeight(count) + flowerRadius(c.geneticTraits) + 3 : 4)
+  );
 }
 
 function gardenItems() {
@@ -896,7 +1047,11 @@ function placeInGarden(c, G, area, near) {
   if (sack.pos) others.push(sack.pos); // 씨앗 포대 자리도 비워 둔다
   let span = max(40, (area.x1 - area.x0) / G.P - 30); // 지금 화면에 보이는 화단 폭(칸)
   let best = null;
-  for (let tries = 0; tries < 6 && (!best || best.score < GARDEN_GAP); tries++) {
+  for (
+    let tries = 0;
+    tries < 6 && (!best || best.score < GARDEN_GAP);
+    tries++
+  ) {
     for (let i = 0; i < 40; i++) {
       let pos = near
         ? {
@@ -906,7 +1061,9 @@ function placeInGarden(c, G, area, near) {
         : { x: 15 + random(span), d: random() };
       let score = min(
         GARDEN_GAP * 3,
-        ...others.map((o) => dist(pos.x, pos.d * depthCells, o.x, o.d * depthCells)),
+        ...others.map((o) =>
+          dist(pos.x, pos.d * depthCells, o.x, o.d * depthCells),
+        ),
       );
       if (!best || score > best.score) best = { pos, score };
     }
@@ -926,7 +1083,11 @@ function drawGarden(area) {
     if (mouseX < area.x0 + 40) gardenScroll -= 8;
     if (mouseX > area.x1 - 40) gardenScroll += 8;
   }
-  gardenScroll = constrain(gardenScroll, 0, G.maxScroll + (dragging || carry ? 300 : 0));
+  gardenScroll = constrain(
+    gardenScroll,
+    0,
+    G.maxScroll + (dragging || carry ? 300 : 0),
+  );
   let P = G.P;
   drawSoil(G.top - 8 * P, height, area.x0 - gardenScroll, P);
   if (!G.items.length)
@@ -966,22 +1127,48 @@ function drawGarden(area) {
   let K = sackLayout(area, G);
   updateSack(K);
   updateSeeds(K);
-  let carrying = (kind, id) => carry && carry.kind === kind && (!id || carry.id === id);
+  let carrying = (kind, id) =>
+    carry && carry.kind === kind && (!id || carry.id === id);
   let seedOverSack =
-    carrying("seed") && zoneAt(prevZones.ui.filter((z) => z.id === "sack"), mouseX, mouseY);
+    carrying("seed") &&
+    zoneAt(
+      prevZones.ui.filter((z) => z.id === "sack"),
+      mouseX,
+      mouseY,
+    );
   let scene = placed.map(({ c, at }) => ({
     y: at.y,
-    draw: () => drawGardenItem(c, at.x, at.y, G, area, target && target.id === c.id ? "target" : ""),
+    draw: () =>
+      drawGardenItem(
+        c,
+        at.x,
+        at.y,
+        G,
+        area,
+        target && target.id === c.id ? "target" : "",
+      ),
   }));
-  if (!carrying("sack")) scene.push({ y: K.y, draw: () => drawSack(K, seedOverSack) });
+  if (!carrying("sack"))
+    scene.push({ y: K.y, draw: () => drawSack(K, seedOverSack) });
   for (let s of seeds)
     if (!carrying("seed", s.id) && !s.back)
-      scene.push({ y: pointAt(s, G, area).y, draw: () => drawSeedDrop(s, G, area, K) });
+      scene.push({
+        y: pointAt(s, G, area).y,
+        draw: () => drawSeedDrop(s, G, area, K),
+      });
   scene.sort((a, b) => a.y - b.y).forEach((o) => o.draw());
   if (dragging)
-    drawGardenItem(getContainer(dragging.id), lifted.x, lifted.y, G, area, "lifted");
+    drawGardenItem(
+      getContainer(dragging.id),
+      lifted.x,
+      lifted.y,
+      G,
+      area,
+      "lifted",
+    );
   if (carrying("sack")) drawSack(K, false);
-  for (let s of seeds) if (carrying("seed", s.id) || s.back) drawSeedDrop(s, G, area, K);
+  for (let s of seeds)
+    if (carrying("seed", s.id) || s.back) drawSeedDrop(s, G, area, K);
 }
 
 // ---------- 씨앗 포대 ----------
@@ -998,7 +1185,15 @@ function sackLayout(area, G) {
     ? { x: round(mouseX + carry.dx), y: round(mouseY + carry.dy) }
     : pointAt(sack.pos, G, area);
   let pos = carried ? posAt(at.x, at.y, G, area) : sack.pos;
-  return { x: at.x, y: at.y, pos, S, w, h, mouth: { x: at.x + sackLean(0, sack.a) * S, y: at.y - h } };
+  return {
+    x: at.x,
+    y: at.y,
+    pos,
+    S,
+    w,
+    h,
+    mouth: { x: at.x + sackLean(0, sack.a) * S, y: at.y - h },
+  };
 }
 
 // 흙 위의 자리 → 화면 좌표
@@ -1027,7 +1222,10 @@ function sackLean(r, a) {
 function drawSack(K, open) {
   let O = { x: K.x - K.w / 2, y: K.y - K.h, P: K.S };
   let hold = carry && carry.kind === "sack";
-  let over = !dragging && !carry && zoneUnderMouse(prevZones.ui.filter((z) => z.id === "sack"));
+  let over =
+    !dragging &&
+    !carry &&
+    zoneUnderMouse(prevZones.ui.filter((z) => z.id === "sack"));
   let pal = {
     o: shade(SEED, -0.35),
     b: over || hold ? "#d9b27a" : "#cfa56c",
@@ -1076,7 +1274,8 @@ function updateSack(K) {
   sack.a += sack.va;
   let dir = sack.va > 0.004 ? 1 : sack.va < -0.004 ? -1 : 0;
   if (dir && dir !== sack.dir) {
-    if (carry && carry.kind === "sack" && abs(a - sack.turnA) > 0.25) shakeSack(K);
+    if (carry && carry.kind === "sack" && abs(a - sack.turnA) > 0.25)
+      shakeSack(K);
     sack.turnA = a;
     sack.dir = dir;
   }
@@ -1168,7 +1367,12 @@ function drawSeedDrop(s, G, area, K) {
   }
   x = round(x / S) * S;
   y = round(y / S) * S;
-  let over = s.landed && !held && !carry && !dragging && zoneUnderMouse(prevZones.ui.filter((z) => z.seed === s.id));
+  let over =
+    s.landed &&
+    !held &&
+    !carry &&
+    !dragging &&
+    zoneUnderMouse(prevZones.ui.filter((z) => z.seed === s.id));
   if (!s.back) {
     fill(shade(GROUND, -0.12));
     rect(x - S, round(shadowY / S) * S + S, S * 3, S);
@@ -1185,9 +1389,22 @@ function drawSeedDrop(s, G, area, K) {
     fill(PAPER);
     rect(x + 2 * S, y - 3 * S, S, S);
   }
-  if (over) caption("누르면 태그 만들기 · 포대에 넣으면 버리기", x + S / 2, y + 3 * S + 4, 11);
+  if (over)
+    caption(
+      "누르면 태그 만들기 · 포대에 넣으면 버리기",
+      x + S / 2,
+      y + 3 * S + 4,
+      11,
+    );
   if (s.landed && !held && !s.back)
-    zones.ui.push({ id: "seed", seed: s.id, x0: x - 4 * S, x1: x + 5 * S, y0: y - 4 * S, y1: y + 4 * S });
+    zones.ui.push({
+      id: "seed",
+      seed: s.id,
+      x0: x - 4 * S,
+      x1: x + 5 * S,
+      y0: y - 4 * S,
+      y1: y + 4 * S,
+    });
 }
 
 // 정원에서 자식을 끌 때 자식과 부모를 잇는 끈(뿌리)을 s px 칸으로 그린다.
@@ -1266,6 +1483,9 @@ function drawDetail(area) {
   // 칸 크기는 늘 같은 기준으로 정해서 잎·꽃 크기를 지키고, 크게 자란 식물이 넘칠 때만 줄인다.
   let avail = area.y1 - area.y0 - max(0, levels - 1) * ROOT_ROW;
   let tall = plantCells(c, count);
+  // 바닥선은 식물·화분의 높이와 무관하게 화면 아래쪽에 고정한다.
+  // 줄기가 긴 경우에는 위쪽 영역 안에 들어오도록 칸 크기만 줄인다.
+  let groundY = round(lerp(area.y0, area.y1, 0.76));
   let P = max(
     2,
     floor(
@@ -1274,11 +1494,11 @@ function drawDetail(area) {
         (area.x1 - area.x0) / 46,
         avail / (LAYOUT_CELLS + rows + 26),
         avail / (tall + 26),
+        (groundY - area.y0 - 8) / tall,
       ),
     ),
   );
   let ox = round((area.x0 + area.x1) / 2 - P / 2);
-  let groundY = area.y0 + max(LAYOUT_CELLS + rows, tall) * P;
   detailGround = { y: groundY, P };
   drawSoil(groundY, height - groundY, ox, P);
   drawRoots(c, ox, groundY, P, area, levels);
@@ -1299,7 +1519,13 @@ function drawDetail(area) {
   else drawMound(O);
   // 화분(흙더미)도 누르면 메모를 쓴다
   let hw = isPot ? max(...POT_SHAPES[c.potStyle.shape].rows) : 6;
-  zones.body.push({ O, x0: O.x - hw * P, x1: O.x + (hw + 1) * P, y0: O.y, y1: groundY });
+  zones.body.push({
+    O,
+    x0: O.x - hw * P,
+    x1: O.x + (hw + 1) * P,
+    y0: O.y,
+    y1: groundY,
+  });
 
   // 성장 이름표: 단계 이름, 단계 점, 메모 개수
   let stage = growthStage(count);
@@ -1333,8 +1559,25 @@ function drawRoots(c, ox, groundY, P, area, levels) {
     c.parentIds.forEach((id, i) => {
       let side = i ? 1 : -1;
       let ex = ox + side * spread * P;
-      wildRoot(ox, groundY + 3 * P, ex, groundY + (reach + 1) * P, P, c.seed + i * 131);
-      drawRootNode(id, ex + P / 2, groundY + (reach + 1) * P, w / 2, 1, levels, area, P, hoverId);
+      wildRoot(
+        ox,
+        groundY + 3 * P,
+        ex,
+        groundY + (reach + 1) * P,
+        P,
+        c.seed + i * 131,
+      );
+      drawRootNode(
+        id,
+        ex + P / 2,
+        groundY + (reach + 1) * P,
+        w / 2,
+        1,
+        levels,
+        area,
+        P,
+        hoverId,
+      );
     });
     return;
   }
@@ -1358,7 +1601,12 @@ function drawRoots(c, ox, groundY, P, area, levels) {
     for (let hair of hairs) cellAt(O, hair.x, hair.y);
     fill(ROOT);
   }
-  caption("1세대 식물 · 부모가 없는 첫 뿌리", ox + P / 2, groundY + (reach + 2) * P, 12);
+  caption(
+    "1세대 식물 · 부모가 없는 첫 뿌리",
+    ox + P / 2,
+    groundY + (reach + 2) * P,
+    12,
+  );
 }
 
 // 뿌리 이름표 하나: [학교 + 아침]처럼 태그 묶음을 나누지 않고 하나로 단다.
@@ -1367,7 +1615,11 @@ function drawRootNode(id, x, y, slotW, level, levels, area, P, hoverId) {
   let p = getContainer(id);
   let zone = drawPlate(p ? groupLabel(p) : "[사라진 부모]", x, y, {
     size: level === 1 ? constrain(P * 2, 12, 15) : 12,
-    bg: rootFilters.includes(id) ? ACCENT : hoverId === id ? shade(INK, 0.2) : INK,
+    bg: rootFilters.includes(id)
+      ? ACCENT
+      : hoverId === id
+        ? shade(INK, 0.2)
+        : INK,
     maxW: slotW - 8,
     minX: area.x0 + 4,
     maxX: area.x1 - 4,
@@ -1385,8 +1637,25 @@ function drawRootNode(id, x, y, slotW, level, levels, area, P, hoverId) {
   if (level >= levels) return caption("⋯", cx, zone.y1 + 16, 12);
   p.parentIds.forEach((parentId, i) => {
     let px = round(x + ((i ? 1 : -1) * slotW) / 4);
-    wildRoot(cx, zone.y1 + 15, px, y + ROOT_ROW, max(2, round(P * 0.6)), p.seed + i * 977);
-    drawRootNode(parentId, px, y + ROOT_ROW, slotW / 2, level + 1, levels, area, P, hoverId);
+    wildRoot(
+      cx,
+      zone.y1 + 15,
+      px,
+      y + ROOT_ROW,
+      max(2, round(P * 0.6)),
+      p.seed + i * 977,
+    );
+    drawRootNode(
+      parentId,
+      px,
+      y + ROOT_ROW,
+      slotW / 2,
+      level + 1,
+      levels,
+      area,
+      P,
+      hoverId,
+    );
   });
 }
 
@@ -1441,9 +1710,16 @@ function drawBook(area) {
   let cols = max(1, floor((w - 32 + BOOK_GAP) / (BOOK_CARD_W + BOOK_GAP)));
   let cardW = min(260, floor((w - 32 - (cols - 1) * BOOK_GAP) / cols));
   let x0 = round(area.x0 + (w - cols * cardW - (cols - 1) * BOOK_GAP) / 2);
-  let entries = db.containers.slice().sort((a, b) => a.generation - b.generation || byCreated(a, b));
+  let entries = db.containers
+    .slice()
+    .sort((a, b) => a.generation - b.generation || byCreated(a, b));
   if (!entries.length)
-    return caption("아직 도감이 비어 있어요. 씨앗 포대에서 씨앗을 꺼내 심어 보세요", (area.x0 + area.x1) / 2, (area.y0 + area.y1) / 2, 14);
+    return caption(
+      "아직 도감이 비어 있어요. 씨앗 포대에서 씨앗을 꺼내 심어 보세요",
+      (area.x0 + area.x1) / 2,
+      (area.y0 + area.y1) / 2,
+      14,
+    );
   // 넘긴 만큼 그리되, 제목·버튼 줄 밑으로는 그리지 않는다
   drawingContext.save();
   drawingContext.beginPath();
@@ -1460,7 +1736,13 @@ function drawBook(area) {
     rect(x0, y + 22, cols * cardW + (cols - 1) * BOOK_GAP, 3);
     y += 36;
     list.forEach((c, i) =>
-      drawBookCard(c, x0 + (i % cols) * (cardW + BOOK_GAP), y + floor(i / cols) * (BOOK_CARD_H + BOOK_GAP), cardW, area),
+      drawBookCard(
+        c,
+        x0 + (i % cols) * (cardW + BOOK_GAP),
+        y + floor(i / cols) * (BOOK_CARD_H + BOOK_GAP),
+        cardW,
+        area,
+      ),
     );
     y += ceil(list.length / cols) * (BOOK_CARD_H + BOOK_GAP) + 10;
   }
@@ -1495,22 +1777,31 @@ function drawBookCard(c, x, y, w, area) {
   let groundY = y + 14 + plantH;
   fill(GROUND);
   rect(x + 3 * u, groundY, w - 6 * u, 2 * u);
-  drawPlant(c, { x: round(x + w / 2 - P / 2), y: groundY, P }, {
-    count,
-    key: "book-" + c.id,
-    memos,
-    memoFlowers: true,
-    layered: c.type === "pot",
-  });
+  drawPlant(
+    c,
+    { x: round(x + w / 2 - P / 2), y: groundY, P },
+    {
+      count,
+      key: "book-" + c.id,
+      memos,
+      memoFlowers: true,
+      layered: c.type === "pot",
+    },
+  );
 
   // 이름과 잎·꽃 수
   let ty = groundY + 2 * u + 10;
-  let plate = drawPlate(c.name + (c.archived ? " (보관됨)" : ""), x + w / 2, ty, {
-    size: 12,
-    swatch: c.geneticTraits.primaryColor,
-    bg: hover ? ACCENT : INK,
-    maxW: w - 16,
-  });
+  let plate = drawPlate(
+    c.name + (c.archived ? " (보관됨)" : ""),
+    x + w / 2,
+    ty,
+    {
+      size: 12,
+      swatch: c.geneticTraits.primaryColor,
+      bg: hover ? ACCENT : INK,
+      maxW: w - 16,
+    },
+  );
   let flowers = memos.filter((m) => hasMoreTags(c, m)).length;
   fill(INK);
   textSize(12);
@@ -1525,9 +1816,14 @@ function drawBookCard(c, x, y, w, area) {
   let lines = [];
   let level = [c];
   for (let depth = 0; depth < 4; depth++) {
-    let parents = unique(level.flatMap((k) => k.parentIds)).map(getContainer).filter(Boolean);
+    let parents = unique(level.flatMap((k) => k.parentIds))
+      .map(getContainer)
+      .filter(Boolean);
     if (!parents.length) break;
-    lines.push((depth ? " ".repeat(depth - 1) + "└ " : "") + parents.map(groupLabel).join(" × "));
+    lines.push(
+      (depth ? " ".repeat(depth - 1) + "└ " : "") +
+        parents.map(groupLabel).join(" × "),
+    );
     level = parents;
   }
   if (!lines.length) lines.push("처음 심은 식물 · 부모 없음");
@@ -1537,7 +1833,13 @@ function drawBookCard(c, x, y, w, area) {
     textAlign(LEFT, TOP);
     text(fitText(line, w - 8 * u), x + 4 * u, ly + 22 + i * 16);
   });
-  zones.cards.push({ x0: x, x1: x + w, y0: max(y, area.y0), y1: min(y + h, area.y1), id: c.id });
+  zones.cards.push({
+    x0: x,
+    x1: x + w,
+    y0: max(y, area.y0),
+    y1: min(y + h, area.y1),
+    id: c.id,
+  });
 }
 
 // ---------- 미리보기 (태그 만들기·교배) ----------
@@ -1549,7 +1851,14 @@ function drawPreview(c, area, label) {
     tall = plantCells(c, PREVIEW_COUNT);
   let P = max(
     2,
-    floor(min(7, (area.x1 - area.x0) / 46, avail / (LAYOUT_CELLS + rows), avail / tall)),
+    floor(
+      min(
+        7,
+        (area.x1 - area.x0) / 46,
+        avail / (LAYOUT_CELLS + rows),
+        avail / tall,
+      ),
+    ),
   );
   let ox = round((area.x0 + area.x1) / 2 - P / 2);
   let groundY = area.y0 + max(LAYOUT_CELLS + rows, tall) * P;
@@ -1566,8 +1875,19 @@ function drawPreview(c, area, label) {
 
 function drawTagPreview(area) {
   let traits = traitsFromTag(tagDraft);
-  let label = cleanName(tagDraft.name) ? "#" + cleanName(tagDraft.name) : "새 태그";
-  drawPreview({ id: "tag-preview", type: "plant", geneticTraits: traits, seed: tagDraft.seed }, area, label);
+  let label = cleanName(tagDraft.name)
+    ? "#" + cleanName(tagDraft.name)
+    : "새 태그";
+  drawPreview(
+    {
+      id: "tag-preview",
+      type: "plant",
+      geneticTraits: traits,
+      seed: tagDraft.seed,
+    },
+    area,
+    label,
+  );
 }
 
 function drawBreedPreview(area) {

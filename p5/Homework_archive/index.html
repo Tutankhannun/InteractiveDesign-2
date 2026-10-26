@@ -49,13 +49,13 @@
         background: #8a8a8a;
         transition: opacity 0.2s;
       }
-      #menu:hover,
-      #menu.open {
+      #menu:hover:not(.is-hiding),
+      #menu.open:not(.is-hiding) {
         transform: translateX(0);
         box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
       }
-      #menu:hover::after,
-      #menu.open::after {
+      #menu:hover:not(.is-hiding)::after,
+      #menu.open:not(.is-hiding)::after {
         opacity: 0;
       }
       #menu a {
@@ -102,12 +102,22 @@
       // 메뉴 클릭 시 iframe에 해당 폴더의 index.html을 불러옴
       function loadHomework(folderName) {
         document.getElementById("viewer").src = folderName + "/index.html";
-        document.getElementById("menu").classList.remove("open");
+        const menu = document.getElementById("menu");
+        // 포인터가 메뉴 위에 남아 있어도 프로젝트 이동 직후에는 다시 숨긴다.
+        menu.classList.remove("open");
+        menu.classList.add("is-hiding");
       }
 
       // 호버가 없는 터치 화면에서는 손잡이를 탭해서 열고 닫는다
       document.getElementById("menu").addEventListener("click", (event) => {
-        if (event.target.id === "menu") event.currentTarget.classList.toggle("open");
+        if (event.target.id !== "menu") return;
+        event.currentTarget.classList.remove("is-hiding");
+        event.currentTarget.classList.toggle("open");
+      });
+
+      // 메뉴 영역을 벗어난 다음부터는 다시 hover/tap으로 열 수 있다.
+      document.getElementById("menu").addEventListener("pointerleave", (event) => {
+        event.currentTarget.classList.remove("is-hiding");
       });
     </script>
   </body>
