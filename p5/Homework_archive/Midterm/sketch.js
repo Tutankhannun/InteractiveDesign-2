@@ -58,8 +58,6 @@ let overCanvas = true; // 마우스가 캔버스 위에 있는지 (패널 위에
 
 // 캔버스를 만들고 저장된 정원을 불러온 뒤 버튼·입력 이벤트를 연결한다.
 function setup() {
-  // 데모 데이터는 첫 진입 때 저장하고 새로고침한 다음 화면에 그린다.
-  if (seedDemoGardenOnce()) return noLoop();
   createCanvas(windowWidth, windowHeight);
   noStroke();
   textFont("Galmuri11");
@@ -665,6 +663,8 @@ function onAction(event) {
     back: goBack,
     "new-tag": () => newTag(),
     "new-memo": () => newMemo(view === "detail" ? current() : null),
+    demo: () => (panel === "demo" ? closePanel() : openPanel("demo")),
+    "copy-demo": copyDemo,
     book: openBook,
     help: () => (panel === "help" ? closePanel() : openPanel("help")),
     "close-panel": closePanel,
@@ -772,6 +772,7 @@ function renderPanel() {
       tag: renderTagPanel,
       breed: renderBreedPanel,
       help: renderHelpPanel,
+      demo: renderDemoPanel,
     };
     box.innerHTML = renderers[panel]();
     box.scrollTop = scrollTop;
