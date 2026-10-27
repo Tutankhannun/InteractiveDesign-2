@@ -112,6 +112,13 @@
         text-decoration: underline;
         text-underline-offset: 3px;
       }
+      /* 오른쪽 위 데모 버튼 */
+      #demo {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 1;
+      }
       #controls {
         position: absolute;
         bottom: 22px;
@@ -484,6 +491,7 @@
     <script src="https://cdn.jsdelivr.net/npm/p5@2.3.3/lib/p5.min.js"></script>
     <script src="sprites.js" defer></script>
     <script src="data.js" defer></script>
+    <script src="demo.js" defer></script>
     <script src="render.js" defer></script>
     <script src="sketch.js" defer></script>
   </head>
@@ -493,6 +501,15 @@
         <h1 id="title"></h1>
         <p id="hint" hidden></p>
       </header>
+      <button
+        id="demo"
+        class="ghost small"
+        type="button"
+        data-action="demo"
+        title="지금 정원을 지우고 데모 정원으로 바꿔요"
+      >
+        데모
+      </button>
       <aside id="panel" aria-live="polite" hidden></aside>
       <div id="editor" hidden>
         <label for="editorInput">화분 이름</label

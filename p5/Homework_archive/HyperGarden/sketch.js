@@ -715,6 +715,7 @@ function onAction(event) {
     "new-tag": () => newTag(),
     "new-memo": () => newMemo(view === "detail" ? current() : null),
     book: openBook,
+    demo: applyDemo,
     "toggle-list": () => {
       listOpen = !listOpen;
       renderPanel();
@@ -1525,6 +1526,17 @@ function setArchived(archived) {
   }
 }
 
+// 데모 버튼: 지금 정원을 지우고 데모 정원(demo.js)으로 바꾼 뒤 새로고침한다.
+function applyDemo() {
+  if (
+    !confirm(
+      "지금 정원을 지우고 데모 정원(식물 5 · 화분 7 · 4세대)으로 바꿀까요?\n지금 있는 메모와 식물은 모두 사라져요.",
+    )
+  )
+    return;
+  seedGarden();
+}
+
 // ---------- 화면 글자·버튼 ----------
 
 // 잠깐 안내 문구 자리에 알림을 띄운다.
@@ -1567,6 +1579,7 @@ function updateUI() {
     .forEach(
       (node) => (node.hidden = !node.dataset.on.split(" ").includes(view)),
     );
+  el("demo").hidden = view !== "garden";
   el("back").textContent = backStack.length
     ? "‹ 뒤로"
     : view === "detail" && fromBook
