@@ -26,7 +26,7 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100px;
+        width: 300px;
         height: 100%;
         padding: 20px;
         box-sizing: border-box;
@@ -34,7 +34,9 @@
         z-index: 10;
         /* 평소에는 왼쪽 밖으로 숨기고 12px 손잡이만 남겨 둔다 */
         transform: translateX(calc(-100% + 12px));
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease;
       }
       /* 숨어 있을 때 보이는 손잡이 */
       #menu::after {
@@ -86,16 +88,14 @@
   </head>
   <body>
     <div id="menu">
-      <a onclick="loadHomework('HW1(Cell_division)')">HW1(Cell_division)</a>
-      <a onclick="loadHomework('HW2(Candle_In_The_Rain)')"
-        >HW2(Candle_In_The_Rain)</a
-      >
-      <a onclick="loadHomework('Midterm')">Midterm</a>
+      <a onclick="loadHomework('Cell_division')">Cell_division</a>
+      <a onclick="loadHomework('Candle_In_The_Rain')">Candle_In_The_Rain</a>
+      <a onclick="loadHomework('HyperGarden')">HyperGarden</a>
     </div>
 
     <div id="stage">
       <!-- 처음 열었을 때 보여줄 과제 -->
-      <iframe id="viewer" src="HW1(Cell_division)/index.html"></iframe>
+      <iframe id="viewer" src="Cell_division/index.html"></iframe>
     </div>
 
     <script>
@@ -116,9 +116,11 @@
       });
 
       // 메뉴 영역을 벗어난 다음부터는 다시 hover/tap으로 열 수 있다.
-      document.getElementById("menu").addEventListener("pointerleave", (event) => {
-        event.currentTarget.classList.remove("is-hiding");
-      });
+      document
+        .getElementById("menu")
+        .addEventListener("pointerleave", (event) => {
+          event.currentTarget.classList.remove("is-hiding");
+        });
     </script>
   </body>
 </html>

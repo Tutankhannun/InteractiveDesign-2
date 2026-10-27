@@ -50,7 +50,15 @@ let flashUntil = 0;
 let lastHint = ""; // 마지막으로 보여 준 안내 문구
 let lastTitle = ""; // 마지막으로 보여 준 제목
 let lastPanel = null; // 마지막으로 그린 패널 (같은 패널이면 스크롤 위치 유지)
-let sack = { pos: null, a: 0, va: 0, dir: 0, turnA: 0, shakes: 0, lastShake: 0 }; // 씨앗 포대 (자리·흔들림)
+let sack = {
+  pos: null,
+  a: 0,
+  va: 0,
+  dir: 0,
+  turnA: 0,
+  shakes: 0,
+  lastShake: 0,
+}; // 씨앗 포대 (자리·흔들림)
 let seeds = []; // 포대에서 나온 씨앗들 { id, x, d, z, vx, vz, landed, back }
 let carry = null; // 끌고 있는 포대·씨앗 { kind: "sack" | "seed", id, dx, dy, lastX, vx }
 let pickedSeedId = null; // 태그를 만들려고 주운 씨앗
@@ -225,11 +233,20 @@ function leafUnderMouse() {
 function bodyUnderMouse() {
   if (!overCanvas) return null;
   return zones.body.find((z) => {
-    if (z.x0 !== undefined) return mouseX >= z.x0 && mouseX <= z.x1 && mouseY >= z.y0 && mouseY <= z.y1;
+    if (z.x0 !== undefined)
+      return (
+        mouseX >= z.x0 && mouseX <= z.x1 && mouseY >= z.y0 && mouseY <= z.y1
+      );
     let P = z.O.P,
       lx = (mouseX - z.O.x) / P,
       ly = (mouseY - z.O.y) / P;
-    return z.cells.some((c) => lx > c.x - 0.8 && lx < c.x + c.w + 0.8 && ly > c.y - 0.3 && ly < c.y + 1.3);
+    return z.cells.some(
+      (c) =>
+        lx > c.x - 0.8 &&
+        lx < c.x + c.w + 0.8 &&
+        ly > c.y - 0.3 &&
+        ly < c.y + 1.3,
+    );
   });
 }
 
@@ -240,7 +257,13 @@ function mousePressed(event) {
   if (event && event.target && event.target.tagName !== "CANVAS") return;
   if (event && event.button > 0) return;
   hideContextMenu();
-  press = { x: mouseX, y: mouseY, scroll: gardenScroll, bookScroll, moved: false };
+  press = {
+    x: mouseX,
+    y: mouseY,
+    scroll: gardenScroll,
+    bookScroll,
+    moved: false,
+  };
   if (previewing()) return;
   if (view === "garden") {
     // 씨앗 포대·씨앗은 식물보다 위에 있다
@@ -249,8 +272,20 @@ function mousePressed(event) {
       // 누른 곳과 놓인 자리의 차이를 기억해 두면 끌 때 손 밑에서 그대로 따라온다
       let area = viewArea(),
         G = gardenLayout(area);
-      let at = ui.id === "sack" ? sackLayout(area, G) : pointAt(seeds.find((s) => s.id === ui.seed), G, area);
-      press.ui = { kind: ui.id, id: ui.seed, dx: at.x - mouseX, dy: at.y - mouseY };
+      let at =
+        ui.id === "sack"
+          ? sackLayout(area, G)
+          : pointAt(
+              seeds.find((s) => s.id === ui.seed),
+              G,
+              area,
+            );
+      press.ui = {
+        kind: ui.id,
+        id: ui.seed,
+        dx: at.x - mouseX,
+        dy: at.y - mouseY,
+      };
       return;
     }
     let item = zoneUnderMouse(zones.items);
@@ -258,7 +293,11 @@ function mousePressed(event) {
       // 누른 곳과 심은 자리의 차이를 기억해 두면 끌 때 손 밑에서 그대로 따라온다
       let area = viewArea(),
         at = gardenPoint(getContainer(item.id), gardenLayout(area), area);
-      Object.assign(press, { item: item.id, dx: at.x - mouseX, dy: at.y - mouseY });
+      Object.assign(press, {
+        item: item.id,
+        dx: at.x - mouseX,
+        dy: at.y - mouseY,
+      });
     }
     return;
   }
@@ -305,7 +344,8 @@ function mouseDragged() {
     if (press.moved && !carry) carry = { ...press.ui, lastX: mouseX, vx: 0 };
     return;
   }
-  if (view === "book" && press.moved) return (bookScroll = press.bookScroll - (mouseY - press.y));
+  if (view === "book" && press.moved)
+    return (bookScroll = press.bookScroll - (mouseY - press.y));
   if (view !== "garden" || previewing() || !press.moved) return;
   if (press.item) {
     if (!dragging) startDrag(press);
@@ -354,7 +394,8 @@ function startDrag(p) {
   let visit = (c, depth) => {
     for (let id of c.parentIds) {
       let parent = getContainer(id);
-      if (!parent || parent.archived || followers.some((f) => f.id === id)) continue;
+      if (!parent || parent.archived || followers.some((f) => f.id === id))
+        continue;
       let a = home(c.id),
         b = home(id);
       followers.push({
@@ -816,17 +857,34 @@ function renderListPanel() {
     ${
       !memos.length
         ? `<p class="meta">아직 메모가 없어요. 메모를 쓰면 씨앗이 싹을 틔워요.</p>`
-        : memoGroup("꽃", memos.filter((m) => hasMoreTags(c, m)), groups) +
+        : memoGroup(
+            "꽃",
+            memos.filter((m) => hasMoreTags(c, m)),
+            groups,
+          ) +
           (isPot
-            ? memoGroup("바깥쪽 잎", memos.filter((m) => !hasMoreTags(c, m) && isOwnMemo(c, m)), groups) +
-              memoGroup("안쪽 잎", memos.filter((m) => !hasMoreTags(c, m) && !isOwnMemo(c, m)), groups)
-            : memoGroup("잎", memos.filter((m) => !hasMoreTags(c, m)), groups))
+            ? memoGroup(
+                "바깥쪽 잎",
+                memos.filter((m) => !hasMoreTags(c, m) && isOwnMemo(c, m)),
+                groups,
+              ) +
+              memoGroup(
+                "안쪽 잎",
+                memos.filter((m) => !hasMoreTags(c, m) && !isOwnMemo(c, m)),
+                groups,
+              )
+            : memoGroup(
+                "잎",
+                memos.filter((m) => !hasMoreTags(c, m)),
+                groups,
+              ))
     }`;
 }
 
 // 정원 사용법: 심기·옮기기·교배, 씨앗 포대
 function renderGardenHelp() {
-  let list = (items) => `<ul class="help">${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
+  let list = (items) =>
+    `<ul class="help">${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
   return `
     <h2>사용법</h2>
     <div class="label">식물 · 화분</div>
@@ -856,15 +914,20 @@ function renderHelpPanel() {
   if (view === "garden") return renderGardenHelp();
   let c = current();
   let isPot = c && c.type === "pot";
-  let list = (items) => `<ul class="help">${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
+  let list = (items) =>
+    `<ul class="help">${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
   return `
     <h2>사용법</h2>
     <div class="label">잎 · 꽃</div>
     ${list([
       "잎이나 꽃을 누르면 그 메모를 열어요.",
       "잎을 잡아 멀리 당기면 떨어지면서 메모를 지워요.",
-      "꽃은 이 " + (isPot ? "화분" : "식물") + "보다 태그가 많은 메모예요. 두 번 누르면 그 태그 조합의 화분으로 가요.",
-      ...(isPot ? ["바깥쪽 잎은 이 세대 메모, 줄기 안쪽 잎은 이전 세대 메모예요."] : []),
+      "꽃은 이 " +
+        (isPot ? "화분" : "식물") +
+        "보다 태그가 많은 메모예요. 두 번 누르면 그 태그 조합의 화분으로 가요.",
+      ...(isPot
+        ? ["바깥쪽 잎은 이 세대 메모, 줄기 안쪽 잎은 이전 세대 메모예요."]
+        : []),
     ])}
     <div class="label">줄기 · ${isPot ? "화분" : "흙더미"}</div>
     ${list([
@@ -929,7 +992,11 @@ function renderMemoPanel() {
     .map((tag) => {
       let on = d.tagIds.includes(tag.id),
         locked = d.locked.includes(tag.id);
-      return tagChip(tag, `${on ? "on" : ""}${locked ? " locked" : ""}`, "toggle-tag");
+      return tagChip(
+        tag,
+        `${on ? "on" : ""}${locked ? " locked" : ""}`,
+        "toggle-tag",
+      );
     })
     .join("");
   let notice = "";
@@ -1148,7 +1215,9 @@ function saveMemo() {
 function suggestParents(tagIds) {
   if (tagIds.length === 2) return tagIds.map((id) => plantOfTag(id).id);
   let pots = activeContainers()
-    .filter((c) => c.type === "pot" && c.tagIds.every((id) => tagIds.includes(id)))
+    .filter(
+      (c) => c.type === "pot" && c.tagIds.every((id) => tagIds.includes(id)),
+    )
     .sort((x, y) => y.tagIds.length - x.tagIds.length);
   for (let pot of pots) {
     let rest = tagIds.filter((id) => !pot.tagIds.includes(id));
@@ -1196,7 +1265,13 @@ function dropCarry() {
   }
   let s = seeds.find((s) => s.id === k.id);
   if (!s) return;
-  if (zoneAt(prevZones.ui.filter((z) => z.id === "sack"), mouseX, mouseY)) {
+  if (
+    zoneAt(
+      prevZones.ui.filter((z) => z.id === "sack"),
+      mouseX,
+      mouseY,
+    )
+  ) {
     s.back = { t: 0, x, y: y - 3 * (G.P + 2) };
     return flash("씨앗을 포대에 다시 넣었어요");
   }
@@ -1221,7 +1296,13 @@ function loadShed() {
   try {
     let saved = JSON.parse(localStorage.getItem(shedKey()) || "{}");
     if (saved.sack) sack.pos = saved.sack;
-    seeds = (saved.seeds || []).map((s) => ({ ...s, z: 0, vx: 0, vz: 0, landed: true }));
+    seeds = (saved.seeds || []).map((s) => ({
+      ...s,
+      z: 0,
+      vx: 0,
+      vz: 0,
+      landed: true,
+    }));
   } catch (error) {
     seeds = [];
   }
@@ -1229,8 +1310,13 @@ function loadShed() {
 
 function saveShed() {
   try {
-    let landed = seeds.filter((s) => s.landed && !s.back).map(({ id, x, d }) => ({ id, x, d }));
-    localStorage.setItem(shedKey(), JSON.stringify({ sack: sack.pos, seeds: landed }));
+    let landed = seeds
+      .filter((s) => s.landed && !s.back)
+      .map(({ id, x, d }) => ({ id, x, d }));
+    localStorage.setItem(
+      shedKey(),
+      JSON.stringify({ sack: sack.pos, seeds: landed }),
+    );
   } catch (error) {
     // 저장이 막혀 있어도 이번 화면에서는 그대로 쓴다
   }
@@ -1430,7 +1516,7 @@ function flash(message) {
 function updateHint() {
   let c = current();
   let title =
-    view === "book" ? "식물 도감" : !c || view === "garden" ? "나의 정원" : c.name;
+    view === "book" ? "식물 도감" : !c || view === "garden" ? "" : c.name;
   let hint = millis() < flashUntil ? flashMessage : defaultHint(c);
   if (title !== lastTitle) {
     lastTitle = title;
@@ -1444,9 +1530,12 @@ function updateHint() {
 }
 
 function defaultHint(c) {
-  if (panel === "tag") return "이름만 지어 주세요. 색과 모양은 무작위로 정해져요. (미리보기는 다 자란 모습)";
-  if (panel === "breed") return "형질마다 부모 A·B 중 물려받을 쪽을 골라 주세요.";
-  if (view === "book") return "잎·꽃 수와 계보를 볼 수 있어요 · 카드를 누르면 그 식물로 가요.";
+  if (panel === "tag")
+    return "이름만 지어 주세요. 색과 모양은 무작위로 정해져요. (미리보기는 다 자란 모습)";
+  if (panel === "breed")
+    return "형질마다 부모 A·B 중 물려받을 쪽을 골라 주세요.";
+  if (view === "book")
+    return "잎·꽃 수와 계보를 볼 수 있어요 · 카드를 누르면 그 식물로 가요.";
   return ""; // 정원·상세 화면의 동작 설명은 사용법 버튼 안에
 }
 
@@ -1454,9 +1543,16 @@ function defaultHint(c) {
 function updateUI() {
   document
     .querySelectorAll("#controls [data-on]")
-    .forEach((node) => (node.hidden = !node.dataset.on.split(" ").includes(view)));
-  el("back").textContent = backStack.length ? "‹ 뒤로" : view === "detail" && fromBook ? "‹ 도감" : "‹ 정원";
-  el("panel").style.bottom = `${innerHeight - el("controls").getBoundingClientRect().top + 10}px`;
+    .forEach(
+      (node) => (node.hidden = !node.dataset.on.split(" ").includes(view)),
+    );
+  el("back").textContent = backStack.length
+    ? "‹ 뒤로"
+    : view === "detail" && fromBook
+      ? "‹ 도감"
+      : "‹ 정원";
+  el("panel").style.bottom =
+    `${innerHeight - el("controls").getBoundingClientRect().top + 10}px`;
 }
 
 // 창 크기가 바뀌면 캔버스도 맞춘다.
