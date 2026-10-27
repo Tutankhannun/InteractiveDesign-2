@@ -925,7 +925,7 @@ function renderGardenHelp() {
       "씨앗을 포대 위에 놓으면 다시 들어가며 사라져요.",
     ])}
     <div class="label">아래 버튼</div>
-    ${list(["책 아이콘: 모든 식물을 모아 보는 도감", "+ 메모: 태그를 골라 메모 쓰기", "데모: 콘솔에 붙여 넣는 데모 정원 스크립트 보기"])}
+    ${list(["책 아이콘: 모든 식물을 모아 보는 도감", "+ 메모: 태그를 골라 메모 쓰기"])}
     <div class="actions">
       <button type="button" class="ghost" data-action="close-panel">닫기</button>
     </div>`;
