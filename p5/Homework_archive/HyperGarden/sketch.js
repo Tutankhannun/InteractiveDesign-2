@@ -15,7 +15,7 @@ const REGROW_DELAY = 2400; // 잎이 떨어진 뒤 다시 자라기 시작할 �
 const REGROW_TIME = 900; // 잎이 다시 다 자라는 데 걸리는 시간(ms)
 const DOUBLE_CLICK = 280; // 뿌리를 두 번 눌렀는지 기다리는 시간(ms)
 const LONG_PRESS = 550; // 길게 누르면 뿌리 메뉴를 연다(ms)
-const WIDE = 760; // 이 폭 이상이면 패널을 오른쪽에, 좁으면 아래쪽에 띄운다
+const WIDE = 900; // 이 폭 이상이면 패널을 오른쪽에, 좁으면 아래쪽에 띄운다 (세로 태블릿도 아래쪽)
 const FLASH_TIME = 3200; // 알림 문구를 보여 주는 시간(ms)
 const SIZE_TRAITS = ["stemThickness", "leafScale", "flowerScale"];
 const ROPE_SLACK = 40; // 끈의 여유(px): 처음 거리보다 이만큼 더 멀어져야 부모가 끌려오기 시작한다
@@ -29,6 +29,7 @@ const SACK_TILT = 0.55; // 포대가 기울 수 있는 최대 각도(라디안)
 let view = "garden"; // 지금 화면: "garden" | "detail" | "book"
 let currentId = null; // 상세 화면에서 보고 있는 식물/화분 id
 let backStack = []; // 뿌리를 따라 옮겨 온 길 (뒤로 가기)
+let listOpen = false; // 좁은 화면에서 메모 목록을 펼쳤는지 (접으면 얇은 띠만 보인다)
 let fromBook = false; // 도감에서 연 상세 화면이면 뒤로 가기가 도감으로
 let bookScroll = 0; // 도감 세로 스크롤(px)
 let panel = null; // 열린 패널: "list" | "memo" | "memoView" | "tag" | "breed" | null
@@ -147,6 +148,7 @@ function openDetail(id, push = false) {
   if (push && currentId && currentId !== id) backStack.push(currentId);
   view = "detail";
   currentId = id;
+  detailScroll = 0;
   rootFilters = [];
   selectedMemoId = null;
   resetEffects();
@@ -262,6 +264,7 @@ function mousePressed(event) {
     y: mouseY,
     scroll: gardenScroll,
     bookScroll,
+    detailScroll,
     moved: false,
   };
   if (previewing()) return;
@@ -346,6 +349,9 @@ function mouseDragged() {
   }
   if (view === "book" && press.moved)
     return (bookScroll = press.bookScroll - (mouseY - press.y));
+  // 상세 화면: 빈 곳을 위아래로 끌면 뿌리 쪽으로 넘긴다
+  if (view === "detail" && press.moved && !previewing())
+    return (detailScroll = press.detailScroll - (mouseY - press.y));
   if (view !== "garden" || previewing() || !press.moved) return;
   if (press.item) {
     if (!dragging) startDrag(press);
@@ -486,6 +492,10 @@ function mouseWheel(event) {
   if (previewing() || !overCanvas) return;
   if (view === "book") {
     bookScroll += event.deltaY;
+    return false;
+  }
+  if (view === "detail") {
+    detailScroll += event.deltaY;
     return false;
   }
   if (view !== "garden") return;
@@ -705,6 +715,10 @@ function onAction(event) {
     "new-tag": () => newTag(),
     "new-memo": () => newMemo(view === "detail" ? current() : null),
     book: openBook,
+    "toggle-list": () => {
+      listOpen = !listOpen;
+      renderPanel();
+    },
     help: () => (panel === "help" ? closePanel() : openPanel("help")),
     "close-panel": closePanel,
     // 메모
@@ -812,6 +826,7 @@ function renderPanel() {
       help: renderHelpPanel,
     };
     box.innerHTML = renderers[panel]();
+    box.classList.toggle("folded", panel === "list" && listFolded());
     box.scrollTop = scrollTop;
     // 새로 연 입력 패널은 첫 입력칸에 바로 쓸 수 있게
     if (panel !== lastPanel && ["memo", "tag"].includes(panel)) {
@@ -835,6 +850,11 @@ function renderListPanel() {
   let c = current();
   if (!c) return "";
   let memos = memosOf(c).slice().reverse();
+  // 좁은 화면: 접혀 있으면 이름과 메모 수만 보이는 띠 하나 (누르면 펼친다)
+  if (listFolded())
+    return `<button type="button" class="sheet-bar" data-action="toggle-list">
+      <b>${esc(c.name)}</b><span>메모 ${memos.length} · 펼치기 ▴</span>
+    </button>`;
   let stage = growthStage(memos.length);
   let isPot = c.type === "pot";
   let groups = filterGroups();
@@ -842,6 +862,7 @@ function renderListPanel() {
     ? `<p class="note">켠 뿌리 ${groups.length}개 <button type="button" class="link" data-action="clear-filter">모두 끄기</button></p>`
     : "";
   return `
+    ${isWide() ? "" : `<button type="button" class="sheet-fold" data-action="toggle-list">접기 ▾</button>`}
     <h2>${esc(c.name)}${c.archived ? " <small>(보관됨)</small>" : ""}</h2>
     <p class="meta">${c.generation}세대 ${isPot ? "화분" : "식물"} · ${GROWTH_STAGES[stage].name} · 메모 ${memos.length}개</p>
     <div class="chips">${c.tagIds.map((id) => tagBadge(getTag(id))).join("")}</div>
@@ -1557,7 +1578,10 @@ function updateUI() {
 
 // 창 크기가 바뀌면 캔버스도 맞춘다.
 function windowResized() {
+  let wasWide = isWide();
   resizeCanvas(windowWidth, windowHeight);
+  // 넓은 화면 ↔ 좁은 화면이 바뀌면 목록 패널 모양(접힌 띠)도 바뀐다
+  if (wasWide !== isWide() && panel === "list") return renderPanel();
   updateUI();
 }
 
@@ -1565,6 +1589,11 @@ function windowResized() {
 
 function el(id) {
   return document.getElementById(id);
+}
+
+// 좁은 화면에서 메모 목록이 접혀 있는지
+function listFolded() {
+  return !isWide() && !listOpen;
 }
 
 function isWide() {

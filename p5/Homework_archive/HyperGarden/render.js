@@ -32,6 +32,7 @@ const SEED = "#8a5a2b"; // 씨앗
 let zones = emptyZones(); // 이번 프레임에 그린 클릭 가능 영역
 let prevZones = emptyZones(); // 지난 프레임의 영역 (마우스를 올린 것 강조용)
 let detailGround = null; // 상세 화면의 바닥선 (떨어지는 잎이 내려앉는 곳)
+let detailScroll = 0; // 상세 화면 세로 스크롤(px): 뿌리가 넘칠 때만 생긴다
 const plantCache = new Map(); // 형질·씨앗별로 만들어 둔 식물 구조
 const colorCache = new Map(); // 형질 색으로 만든 식물 색 조합
 const shownHeight = new Map(); // 지금 화면에 보이는 줄기 높이 (자라는 애니메이션)
@@ -992,11 +993,21 @@ function caption(str, x, y, size = 11, align = CENTER) {
 function gardenLayout(area) {
   let w = area.x1 - area.x0,
     h = area.y1 - area.y0;
-  let P = constrain(floor(min((h - 160) / 80, w / 100)), 2, 3);
+  // 좁은 화면(휴대폰)은 칸을 작게 해서 식물끼리 덜 겹치고 키 큰 식물도 머리가 안 잘리게
+  let P = constrain(floor(min((h - 160) / 80, w / 160)), 2, 3);
   // 보이는 흙바닥의 윗선은 항상 화면 아래쪽 같은 위치에 둔다.
   let top = round(lerp(area.y0, area.y1, 0.26));
   let bottom = area.y1 - 44; // 화단 앞쪽: 이름표 자리를 남긴다
   let items = gardenItems();
+  // 뒤쪽에 심은 키 큰 식물의 머리가 제목 위로 넘치면 칸을 한 단계 줄인다 (낮은 가로 화면)
+  let headroom = (p) =>
+    items.every((c) => {
+      let d = c.gardenPos ? c.gardenPos.d : 0;
+      return top + d * (bottom - top) - itemHeight(c) * p >= area.y0 - 12;
+    });
+  while (P > 2 && !headroom(P)) P--;
+  // 가장 작은 칸으로도 넘치면 그때만 흙바닥 윗선을 조금 내린다
+  while (!headroom(P) && top < bottom - 40) top += 4;
   let right = max(
     0,
     ...items.map((c) => (c.gardenPos ? c.gardenPos.x : 0)),
@@ -1499,8 +1510,21 @@ function drawDetail(area) {
     ),
   );
   let ox = round((area.x0 + area.x1) / 2 - P / 2);
+  // 뿌리(조상 이름표)가 화면 아래로 넘치면 세로로 넘겨 볼 수 있게 한다.
+  let rootDepth = isPot ? 15 * P + (levels - 1) * ROOT_ROW + 64 : 8 * P + 48;
+  let maxScroll = max(0, groundY + rootDepth - area.y1);
+  detailScroll = constrain(detailScroll, 0, maxScroll);
+  groundY -= round(detailScroll);
+  // 아래에 더 볼 뿌리가 남아 있으면 맨 아래 한 줄을 안내 문구 자리로 비운다
+  let more = detailScroll < maxScroll - 2;
+  let clipBottom = area.y1 - (more ? 28 : 0);
   detailGround = { y: groundY, P };
   drawSoil(groundY, height - groundY, ox, P);
+  // 식물·뿌리는 제목 아래부터 버튼 줄(또는 안내 문구) 위까지만 보이게
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.rect(0, area.y0 - 12, width, clipBottom - area.y0 + 12);
+  drawingContext.clip();
   drawRoots(c, ox, groundY, P, area, levels);
 
   let O = { x: ox, y: groundY - rows * P, P };
@@ -1534,6 +1558,8 @@ function drawDetail(area) {
     stage,
     count: `메모 ${count}`,
   });
+  drawingContext.restore();
+  if (more) caption("▾ 아래로 넘겨 뿌리 보기", (area.x0 + area.x1) / 2, clipBottom + 8, 11);
 }
 
 // 뿌리를 몇 단(부모 = 1단, 조부모 = 2단 …)까지 펼칠지: 실제 계보 깊이, 화면 폭, 최대 3단
